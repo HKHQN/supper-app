@@ -1,1 +1,401 @@
+<!DOCTYPE html>
+<html lang="vi" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Nghiên cứu Đường đi ngắn nhất - Dijkstra</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: { extend: { colors: { primary: '#10b981' } } }
+    }
+  </script>
+  <!-- Firebase SDK -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+    import { getDatabase, ref, onValue, set, update, remove, push } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
 
+    window.firebaseApp = initializeApp({
+      databaseURL: "https://supperdatabase-default-rtdb.firebaseio.com/"
+    });
+    window.db = getDatabase(window.firebaseApp);
+  </script>
+  <style>
+    canvas { background: #f8fafc; }
+    .dark canvas { background: #1e293b; }
+  </style>
+</head>
+<body class="bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 min-h-screen transition-colors">
+
+  <header class="bg-white dark:bg-gray-800 shadow sticky top-0 z-10">
+    <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+      <h1 class="text-2xl font-bold text-primary">Nghiên cứu Đường đi ngắn nhất (Dijkstra)</h1>
+      <button id="themeToggle" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">🌙</button>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Canvas & Controls -->
+    <div class="lg:col-span-2 space-y-4">
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow p-4">
+        <canvas id="canvas" width="800" height="500" class="w-full rounded border dark:border-gray-700"></canvas>
+      </div>
+
+      <div class="flex flex-wrap gap-3">
+        <button id="addNode" class="bg-primary text-white px-4 py-2 rounded hover:bg-emerald-700">+ Thêm đỉnh</button>
+        <button id="addEdge" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">+ Thêm cạnh</button>
+        <button id="runDijkstra" class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">Chạy Dijkstra</button>
+        <button id="clearGraph" class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">Xóa toàn bộ</button>
+      </div>
+
+      <div id="result" class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow min-h-[100px]"></div>
+    </div>
+
+    <!-- Data Panel -->
+    <div class="space-y-6">
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow p-5">
+        <h2 class="text-lg font-semibold mb-3">Đỉnh & Cạnh</h2>
+        <div id="nodeList" class="space-y-2 max-h-60 overflow-y-auto"></div>
+      </div>
+
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow p-5">
+        <h3 class="font-medium mb-2">Chọn nguồn để chạy Dijkstra</h3>
+        <select id="sourceSelect" class="w-full px-3 py-2 border rounded dark:bg-gray-700 dark:border-gray-600">
+          <option value="">Chọn đỉnh nguồn...</option>
+        </select>
+      </div>
+    </div>
+  </main>
+
+  <!-- Modal Add/Edit -->
+  <div id="modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-md mx-4">
+      <h3 id="modalTitle" class="text-xl font-bold mb-4">Thêm/Sửa</h3>
+      <form id="form">
+        <input type="hidden" id="editType" /> <!-- node or edge -->
+        <input type="hidden" id="editId" />
+
+        <div id="nodeFields" class="space-y-4">
+          <div>
+            <label class="block text-sm mb-1">Tên đỉnh (A, B, 1, 2...)</label>
+            <input type="text" id="nodeName" required class="w-full px-4 py-2 border rounded dark:bg-gray-700" />
+          </div>
+          <div>
+            <label class="block text-sm mb-1">Tọa độ X (0-800)</label>
+            <input type="number" id="x" min="20" max="780" value="100" class="w-full px-4 py-2 border rounded dark:bg-gray-700" />
+          </div>
+          <div>
+            <label class="block text-sm mb-1">Tọa độ Y (0-500)</label>
+            <input type="number" id="y" min="20" max="480" value="100" class="w-full px-4 py-2 border rounded dark:bg-gray-700" />
+          </div>
+        </div>
+
+        <div id="edgeFields" class="space-y-4 hidden">
+          <div>
+            <label class="block text-sm mb-1">Từ đỉnh</label>
+            <select id="from" class="w-full px-4 py-2 border rounded dark:bg-gray-700"></select>
+          </div>
+          <div>
+            <label class="block text-sm mb-1">Đến đỉnh</label>
+            <select id="to" class="w-full px-4 py-2 border rounded dark:bg-gray-700"></select>
+          </div>
+          <div>
+            <label class="block text-sm mb-1">Trọng số (khoảng cách)</label>
+            <input type="number" id="weight" min="1" value="1" class="w-full px-4 py-2 border rounded dark:bg-gray-700" />
+          </div>
+        </div>
+
+        <div class="flex justify-end gap-3 mt-6">
+          <button type="button" id="cancel" class="px-5 py-2 border rounded hover:bg-gray-100 dark:hover:bg-gray-700">Hủy</button>
+          <button type="submit" class="bg-primary text-white px-6 py-2 rounded hover:bg-emerald-700">Lưu</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script type="module">
+    import { ref, onValue, set, update, remove, push } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+
+    const db = window.db;
+    const graphRef = ref(db, 'shortestpath/graphs');
+
+    // --- State ---
+    let nodes = {};
+    let edges = [];
+    let selected = null; // for adding edge
+    let source = null;
+
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const modal = document.getElementById('modal');
+    const form = document.getElementById('form');
+
+    // Theme
+    const themeToggle = document.getElementById('themeToggle');
+    if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      document.documentElement.classList.add('dark');
+      themeToggle.textContent = '☀️';
+    }
+    themeToggle.onclick = () => {
+      document.documentElement.classList.toggle('dark');
+      localStorage.theme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+      themeToggle.textContent = document.documentElement.classList.contains('dark') ? '☀️' : '🌙';
+      draw();
+    };
+
+    // Draw graph
+    function draw(highlightPath = []) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Edges
+      edges.forEach(e => {
+        const from = nodes[e.from];
+        const to = nodes[e.to];
+        if (!from || !to) return;
+
+        ctx.beginPath();
+        ctx.moveTo(from.x, from.y);
+        ctx.lineTo(to.x, to.y);
+        ctx.strokeStyle = highlightPath.includes(e) ? '#f59e0b' : '#64748b';
+        ctx.lineWidth = highlightPath.includes(e) ? 4 : 2;
+        ctx.stroke();
+
+        // Weight
+        const midX = (from.x + to.x) / 2;
+        const midY = (from.y + to.y) / 2;
+        ctx.fillStyle = document.documentElement.classList.contains('dark') ? '#e2e8f0' : '#1e293b';
+        ctx.font = '12px Arial';
+        ctx.fillText(e.weight, midX + 5, midY - 5);
+      });
+
+      // Nodes
+      Object.values(nodes).forEach(n => {
+        ctx.beginPath();
+        ctx.arc(n.x, n.y, 20, 0, Math.PI * 2);
+        ctx.fillStyle = highlightPath.includes(n.name) ? '#fbbf24' : (n.name === source ? '#ef4444' : '#3b82f6');
+        ctx.fill();
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 14px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(n.name, n.x, n.y);
+      });
+    }
+
+    // Load from Firebase
+    onValue(graphRef, snap => {
+      const data = snap.val() || { nodes: {}, edges: [] };
+      nodes = data.nodes || {};
+      edges = data.edges || [];
+      renderLists();
+      draw();
+    });
+
+    function saveGraph() {
+      set(graphRef, { nodes, edges });
+    }
+
+    // Render node/edge lists
+    function renderLists() {
+      const nodeList = document.getElementById('nodeList');
+      nodeList.innerHTML = '<p class="text-sm text-gray-500 dark:text-gray-400">Danh sách đỉnh:</p>';
+      Object.keys(nodes).forEach(key => {
+        const div = document.createElement('div');
+        div.className = 'flex justify-between items-center bg-gray-100 dark:bg-gray-700 p-2 rounded';
+        div.innerHTML = `
+          <span>${key} (${nodes[key].x}, ${nodes[key].y})</span>
+          <div>
+            <button onclick="editNode('${key}')" class="text-blue-500 text-sm mr-2">Sửa</button>
+            <button onclick="deleteNode('${key}')" class="text-red-500 text-sm">Xóa</button>
+          </div>
+        `;
+        nodeList.appendChild(div);
+      });
+
+      // Source select
+      const sourceSelect = document.getElementById('sourceSelect');
+      sourceSelect.innerHTML = '<option value="">Chọn đỉnh nguồn...</option>';
+      Object.keys(nodes).forEach(k => {
+        const opt = document.createElement('option');
+        opt.value = k;
+        opt.textContent = k;
+        sourceSelect.appendChild(opt);
+      });
+    }
+
+    // Add node mode
+    document.getElementById('addNode').onclick = () => {
+      document.getElementById('modalTitle').textContent = 'Thêm đỉnh mới';
+      document.getElementById('editType').value = 'node';
+      document.getElementById('nodeFields').classList.remove('hidden');
+      document.getElementById('edgeFields').classList.add('hidden');
+      form.reset();
+      modal.classList.remove('hidden');
+    };
+
+    // Add edge mode
+    document.getElementById('addEdge').onclick = () => {
+      alert('Nhấn vào đỉnh nguồn → đỉnh đích trên canvas để thêm cạnh');
+      selected = null;
+    };
+
+    canvas.onclick = e => {
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+
+      if (document.getElementById('addEdge').classList.contains('active') || selected) {
+        // Add edge mode
+        let clicked = null;
+        for (let [name, n] of Object.entries(nodes)) {
+          const dx = n.x - x;
+          const dy = n.y - y;
+          if (dx*dx + dy*dy < 20*20) {
+            clicked = name;
+            break;
+          }
+        }
+
+        if (clicked) {
+          if (!selected) {
+            selected = clicked;
+            alert(`Đã chọn nguồn: ${selected}. Bây giờ chọn đích.`);
+          } else if (selected !== clicked) {
+            const weight = prompt('Nhập trọng số (khoảng cách):', '1');
+            if (weight && !isNaN(weight)) {
+              edges.push({ from: selected, to: clicked, weight: Number(weight) });
+              saveGraph();
+            }
+            selected = null;
+          }
+        }
+      }
+    };
+
+    // Edit node
+    window.editNode = key => {
+      const n = nodes[key];
+      document.getElementById('modalTitle').textContent = `Sửa đỉnh ${key}`;
+      document.getElementById('editType').value = 'node';
+      document.getElementById('editId').value = key;
+      document.getElementById('nodeName').value = key;
+      document.getElementById('x').value = n.x;
+      document.getElementById('y').value = n.y;
+      document.getElementById('nodeFields').classList.remove('hidden');
+      document.getElementById('edgeFields').classList.add('hidden');
+      modal.classList.remove('hidden');
+    };
+
+    window.deleteNode = key => {
+      if (!confirm('Xóa đỉnh này và tất cả cạnh liên quan?')) return;
+      delete nodes[key];
+      edges = edges.filter(e => e.from !== key && e.to !== key);
+      saveGraph();
+    };
+
+    // Form submit
+    form.onsubmit = e => {
+      e.preventDefault();
+      const type = document.getElementById('editType').value;
+      const id = document.getElementById('editId').value;
+
+      if (type === 'node') {
+        const name = document.getElementById('nodeName').value.trim().toUpperCase();
+        if (!name) return alert('Tên đỉnh không được để trống');
+
+        if (id && id !== name) {
+          // Rename
+          nodes[name] = { x: Number(document.getElementById('x').value), y: Number(document.getElementById('y').value) };
+          delete nodes[id];
+          edges.forEach(e => {
+            if (e.from === id) e.from = name;
+            if (e.to === id) e.to = name;
+          });
+        } else {
+          nodes[name] = { x: Number(document.getElementById('x').value), y: Number(document.getElementById('y').value) };
+        }
+      }
+
+      saveGraph();
+      modal.classList.add('hidden');
+    };
+
+    // Cancel modal
+    document.getElementById('cancel').onclick = () => modal.classList.add('hidden');
+    modal.onclick = e => { if (e.target === modal) modal.classList.add('hidden'); };
+
+    // Run Dijkstra
+    document.getElementById('runDijkstra').onclick = () => {
+      source = document.getElementById('sourceSelect').value;
+      if (!source) return alert('Vui lòng chọn đỉnh nguồn!');
+
+      const distances = {};
+      const previous = {};
+      const unvisited = new Set(Object.keys(nodes));
+
+      Object.keys(nodes).forEach(n => distances[n] = Infinity);
+      distances[source] = 0;
+
+      while (unvisited.size > 0) {
+        let minDist = Infinity;
+        let minNode = null;
+        unvisited.forEach(n => {
+          if (distances[n] < minDist) {
+            minDist = distances[n];
+            minNode = n;
+          }
+        });
+
+        if (minNode === null) break;
+        unvisited.delete(minNode);
+
+        edges.filter(e => e.from === minNode).forEach(e => {
+          const alt = distances[minNode] + e.weight;
+          if (alt < distances[e.to]) {
+            distances[e.to] = alt;
+            previous[e.to] = minNode;
+          }
+        });
+      }
+
+      // Display result
+      let html = `<h3 class="font-semibold mb-2">Kết quả từ ${source}:</h3><ul class="space-y-1 text-sm">`;
+      Object.entries(distances).forEach(([node, dist]) => {
+        if (dist === Infinity) {
+          html += `<li>${node}: Không tới được</li>`;
+        } else {
+          let path = [];
+          let u = node;
+          while (u) {
+            path.unshift(u);
+            u = previous[u];
+          }
+          html += `<li>${node}: ${dist} | Đường đi: ${path.join(' → ')}</li>`;
+        }
+      });
+      html += '</ul>';
+
+      document.getElementById('result').innerHTML = html;
+
+      // Highlight all paths? (simple: highlight nodes with finite distance)
+      const reachable = Object.keys(distances).filter(k => distances[k] < Infinity);
+      draw(reachable);
+    };
+
+    // Clear all
+    document.getElementById('clearGraph').onclick = () => {
+      if (confirm('Xóa toàn bộ đồ thị?')) {
+        set(graphRef, null);
+      }
+    };
+
+    // Initial draw
+    draw();
+  </script>
+</body>
+  </html>
