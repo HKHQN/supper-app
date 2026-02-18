@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Supper App • Siêu Ứng Dụng v1.2</title>
+  <link rel="icon" href="https://raw.githubusercontent.com/hkhqn/supper-app/main/favicon.ico" type="image/x-icon">
+  <link rel="manifest" href="/manifest.json"> <!-- Để hỗ trợ PWA/mobile app -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:wght@500;700&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg: #f9fbfd;
+      --surface: #ffffff;
+      --surface-hover: #f0f4ff;
+      --text: #0f172a;
+      --text-secondary: #64748b;
+      --accent: #4f46e5;          /* indigo-600 */
+      --accent-soft: #6366f1;     /* indigo-500 */
+      --accent-glow: rgba(79,70,229,0.18);
+      --border: #e2e8f0;
+      --shadow-sm: 0 4px 14px rgba(0,0,0,0.05);
+      --shadow-md: 0 10px 30px rgba(79,70,229,0.12);
+    }
+
+    * { margin:0; padding:0; box-sizing:border-box; }
+    html, body {
+      height: 100%;
+      overscroll-behavior: none; /* Ngăn overscroll trên mobile */
+    }
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      background-image: 
+        radial-gradient(circle at 15% 15%, rgba(79,70,229,0.08) 0%, transparent 45%),
+        radial-gradient(circle at 85% 85%, rgba(99,102,241,0.06) 0%, transparent 45%);
+      background-attachment: fixed;
+      line-height: 1.6;
+      -webkit-tap-highlight-color: transparent; /* Loại bỏ highlight tap trên mobile */
+    }
+
+    .header {
+      background: rgba(255,255,255,0.96);
+      backdrop-filter: blur(14px);
+      padding: 1rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      box-shadow: var(--shadow-sm);
+    }
+
+    h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(1.8rem, 5vw, 2.4rem);
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: -0.4px;
+    }
+
+    .version {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      background: rgba(79,70,229,0.08);
+      padding: 0.25rem 0.8rem;
+      border-radius: 6px;
+      border: 1px solid rgba(79,70,229,0.15);
+    }
+
+    .hamburger {
+      display: none; /* Ẩn trên desktop */
+      font-size: 1.8rem;
+      cursor: pointer;
+      color: var(--text-secondary);
+    }
+
+    .main-layout {
+      display: flex;
+      flex-direction: column;
+      min-height: calc(100vh - 60px - 60px); /* Trừ header và bottom nav */
+    }
+
+    .sidebar {
+      background: var(--surface);
+      padding: 1.2rem 1rem;
+      box-shadow: var(--shadow-sm);
+      overflow-y: auto;
+      transition: transform 0.3s ease;
+      position: fixed;
+      top: 60px; /* Dưới header */
+      left: 0;
+      width: 80%;
+      height: calc(100% - 120px); /* Trừ header và bottom */
+      z-index: 999;
+      transform: translateX(-100%);
+    }
+
+    .sidebar.open {
+      transform: translateX(0);
+    }
+
+    .overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.4);
+      z-index: 998;
+      display: none;
+    }
+
+    .overlay.open {
+      display: block;
+    }
+
+    @media (min-width: 768px) { /* Tablet/desktop */
+      .hamburger { display: none; }
+      .sidebar {
+        position: sticky;
+        top: 60px;
+        transform: none;
+        width: 300px;
+        height: calc(100vh - 60px - 60px);
+        border-right: 1px solid var(--border);
+      }
+      .main-layout { flex-direction: row; }
+      .overlay { display: none !important; }
+    }
+
+    .content {
+      flex: 1;
+      padding: 1.5rem 1rem;
+      overflow-y: auto;
+    }
+
+    .search-wrapper { position: relative; margin-bottom: 1.5rem; }
+    .search {
+      width: 100%;
+      padding: 1rem 1rem 1rem 3rem;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-size: 0.95rem;
+      transition: all 0.3s ease;
+    }
+    .search:focus {
+      outline: none;
+      border-color: var(--accent-soft);
+      box-shadow: 0 0 0 4px var(--accent-glow);
+    }
+    .search-icon {
+      position: absolute;
+      left: 1rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-secondary);
+      font-size: 1.2rem;
+    }
+
+    .tree { padding: 0.3rem 0; }
+    .tree ul { list-style: none; padding-left: 1.2rem; }
+    .tree li {
+      padding: 0.8rem 1rem;
+      margin: 0.15rem 0;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      color: var(--text-secondary);
+      font-size: 0.95rem; /* Nhỏ hơn cho mobile */
+    }
+    .tree li:hover { 
+      background: var(--surface-hover); 
+      color: var(--text); 
+    }
+    .tree li.active { 
+      background: rgba(79,70,229,0.12); 
+      color: var(--accent); 
+      font-weight: 500; 
+    }
+
+    .folder { 
+      font-weight: 500; 
+      color: var(--text); 
+    }
+    .folder::before {
+      content: "▾ ";
+      color: var(--accent-soft);
+      display: inline-block;
+      width: 1.2em;
+      transition: transform 0.3s ease;
+      font-size: 1.1rem;
+    }
+    .folder.closed::before { transform: rotate(-90deg); }
+
+    .file::before { 
+      content: "✨"; 
+      font-size: 1.1rem; 
+    }
+
+    .file-title {
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .loading-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 250px;
+      color: var(--text-secondary);
+      font-size: 1rem;
+      gap: 1rem;
+    }
+    .spinner {
+      width: 50px;
+      height: 50px;
+      border: 5px solid rgba(79,70,229,0.12);
+      border-top: 5px solid var(--accent-soft);
+      border-radius: 50%;
+      animation: spin 1.2s linear infinite;
+    }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+    .realtime-panel {
+      background: var(--surface);
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      padding: 1.4rem;
+      margin-bottom: 1.8rem;
+      box-shadow: var(--shadow-md);
+      transition: all 0.3s ease;
+    }
+    .realtime-panel:hover { 
+      transform: translateY(-4px); 
+      box-shadow: 0 12px 32px rgba(79,70,229,0.14); 
+    }
+
+    .panel-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--accent);
+      margin-bottom: 1.2rem;
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+    }
+
+    .dot {
+      width: 10px; height: 10px;
+      background: var(--accent-soft);
+      border-radius: 50%;
+      animation: pulse 2.4s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(99,102,241,0.5); }
+      50% { box-shadow: 0 0 0 14px rgba(99,102,241,0); }
+    }
+
+    .event-item {
+      padding: 1rem 0;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      color: var(--text-secondary);
+      transition: all 0.25s;
+      font-size: 0.92rem;
+    }
+    .event-item:hover { 
+      color: var(--text); 
+      background: rgba(79,70,229,0.06); 
+      border-radius: 8px; 
+    }
+
+    .hash { 
+      color: var(--accent); 
+      font-family: monospace; 
+      font-weight: 500; 
+    }
+    .time { font-size: 0.82rem; white-space: nowrap; opacity: 0.9; }
+
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(255,255,255,0.96);
+      backdrop-filter: blur(14px);
+      border-top: 1px solid var(--border);
+      padding: 0.8rem 1rem;
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      z-index: 1000;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      color: var(--text-secondary);
+      font-size: 0.75rem;
+      cursor: pointer;
+      transition: color 0.2s;
+    }
+    .nav-item.active { color: var(--accent); }
+    .nav-icon { font-size: 1.4rem; margin-bottom: 0.2rem; }
+
+    @media (min-width: 768px) {
+      .bottom-nav { display: none; } /* Ẩn bottom nav trên desktop */
+      .hamburger { display: none; }
+      .status-bar { display: flex !important; } /* Hiển thị status bar trên desktop */
+    }
+
+    .status-bar {
+      display: none; /* Ẩn trên mobile, tích hợp vào bottom nav */
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: rgba(15,23,42,0.96);
+      color: #e2e8f0;
+      backdrop-filter: blur(14px);
+      border-top: 1px solid #334155;
+      padding: 1rem 2.2rem;
+      justify-content: space-between;
+      font-size: 0.9rem;
+      z-index: 999;
+    }
+
+    .online-count {
+      background: var(--accent);
+      color: white;
+      padding: 0.4rem 1.2rem;
+      border-radius: 999px;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div style="display:flex; align-items:center; gap:1rem;">
+      <span class="hamburger" id="hamburger">☰</span>
+      <h1>Supper App</h1>
+      <span class="version">v1.2 • Siêu Ứng Dụng</span>
+    </div>
+    <div style="font-weight:500; color:var(--text-secondary); font-size:0.85rem;">
+      Công cụ: <strong style="color:var(--accent);"><span id="fileCount">0</span></strong>
+    </div>
+  </div>
+
+  <div class="overlay" id="overlay"></div>
+
+  <div class="main-layout">
+    <div class="sidebar" id="sidebar">
+      <div class="search-wrapper">
+        <span class="search-icon">🔍</span>
+        <input type="text" class="search" id="search" placeholder="Tìm kiếm ứng dụng, công cụ..." autocomplete="off"/>
+      </div>
+
+      <div class="tree" id="tree">
+        <div class="loading-container">
+          <div class="spinner"></div>
+          <div>Đang tải danh sách...</div>
+          <small style="opacity:0.75;">Kết nối GitHub</small>
+        </div>
+      </div>
+    </div>
+
+    <div class="content">
+      <div class="realtime-panel">
+        <div class="panel-title">
+          <span class="dot"></span>
+          Ứng dụng & công cụ mới nhất
+        </div>
+        <div id="latest-blocks">Đang tải...</div>
+      </div>
+
+      <div class="realtime-panel">
+        <div class="panel-title">
+          <span class="dot"></span>
+          Hoạt động gần đây
+        </div>
+        <div id="latest-txs">Đang tải...</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottom-nav">
+    <div class="nav-item active" id="homeNav">
+      <span class="nav-icon">🏠</span>
+      Trang chủ
+    </div>
+    <div class="nav-item" id="searchNav">
+      <span class="nav-icon">🔍</span>
+      Tìm kiếm
+    </div>
+    <div class="nav-item">
+      <span class="nav-icon">👥</span>
+      Online: <span id="onlineMobile">0</span>
+    </div>
+    <div class="nav-item">
+      <span class="nav-icon">⏰</span>
+      <span id="timeMobile">—</span>
+    </div>
+  </div>
+
+  <div class="status-bar">
+    <div>Cập nhật: <span id="time">—</span></div>
+    <div class="online-count">Online: <span id="online">0</span></div>
+    <div>v1.2 • hkhqn.github.io/supper-app</div>
+  </div>
+
+  <script>
+    const CUSTOM_DOMAIN = "https://hkhqn.github.io/supper-app/";
+    const RAW_BASE = "https://raw.githubusercontent.com/hkhqn/supper-app/main/";
+    const API_URL = "https://api.github.com/repos/hkhqn/supper-app/git/trees/main?recursive=1";
+    const HIDDEN_FILES = ['index.html', 'LICENSE', 'README.md', 'CNAME', 'favicon.ico', '.gitignore'];
+
+    let allFiles = [];
+    let searchTimer = null;
+
+    async function fetchTitleFromUrl(url) {
+      try {
+        const res = await fetch(url, { cache: 'no-cache' });
+        if (!res.ok) return null;
+        const text = await res.text();
+        const match = text.match(/<title[^>]*>(.*?)<\/title>/is);
+        return match ? match[1].trim() : null;
+      } catch {
+        return null;
+      }
+    }
+
+    async function loadData() {
+      const treeEl = document.getElementById("tree");
+
+      try {
+        const controller = new AbortController();
+        setTimeout(() => controller.abort(), 15000);
+
+        const res = await fetch(API_URL, { signal: controller.signal });
+        if (!res.ok) throw new Error(`GitHub API: ${res.status}`);
+
+        const data = await res.json();
+        if (data.message) throw new Error(data.message);
+
+        let files = data.tree
+          .filter(f => f.type === "blob")
+          .filter(f => !HIDDEN_FILES.includes(f.path.split('/').pop()));
+
+        allFiles = await Promise.all(files.map(async f => {
+          let realTitle = null;
+          if (f.path.toLowerCase().endsWith('.html') || f.path.toLowerCase().endsWith('.htm')) {
+            const url = CUSTOM_DOMAIN + f.path;
+            realTitle = await fetchTitleFromUrl(url);
+          }
+          return {
+            ...f,
+            displayName: f.path.split('/').pop(),
+            realTitle: realTitle || f.path.split('/').pop()
+          };
+        }));
+
+        const count = allFiles.length;
+        document.getElementById("fileCount").textContent = count;
+        const onlineCount = Math.max(4, Math.floor(count * 0.8) + Math.floor(Math.random() * 6));
+        document.getElementById("online").textContent = onlineCount;
+        document.getElementById("onlineMobile").textContent = onlineCount;
+
+        renderTree(allFiles);
+        renderRealTimePanels(allFiles);
+        updateTime();
+
+      } catch (e) {
+        treeEl.innerHTML = `
+          <div style="color:#dc2626; padding:4rem 1rem; text-align:center; line-height:1.6;">
+            Không tải được dữ liệu<br>
+            <small>${e.name === 'AbortError' ? 'Hết thời gian' : e.message}</small><br><br>
+            <button onclick="location.reload()" style="padding:0.7rem 1.4rem; background:var(--accent); color:white; border:none; border-radius:8px; cursor:pointer;">
+              Thử lại
+            </button>
+          </div>`;
+      }
+    }
+
+    function renderTree(files) {
+      const container = document.getElementById("tree");
+      container.innerHTML = "";
+
+      if (files.length === 0) {
+        container.innerHTML = '<div style="padding:3rem 1rem; text-align:center; color:var(--text-secondary);">Chưa có ứng dụng</div>';
+        return;
+      }
+
+      const rootUl = document.createElement("ul");
+      const folders = {};
+
+      files.sort((a,b) => a.path.localeCompare(b.path));
+
+      files.forEach(file => {
+        const parts = file.path.split('/');
+        const name = parts.pop();
+        let current = rootUl;
+
+        parts.forEach((dir, idx) => {
+          const key = parts.slice(0, idx+1).join('/');
+          if (!folders[key]) {
+            const li = document.createElement("li");
+            li.className = "folder closed";
+            li.innerHTML = `<span>${dir}</span>`;
+            li.onclick = e => { e.stopPropagation(); li.classList.toggle("closed"); };
+            const ul = document.createElement("ul");
+            li.appendChild(ul);
+            current.appendChild(li);
+            folders[key] = ul;
+            current = ul;
+          } else {
+            current = folders[key];
+          }
+        });
+
+        const li = document.createElement("li");
+        li.className = "file";
+        li.innerHTML = `<span class="file-title">${file.realTitle}</span>`;
+        li.title = `Tên: ${file.path}\nTiêu đề: ${file.realTitle}`;
+        li.onclick = () => openFile(file.path);
+        current.appendChild(li);
+      });
+
+      container.appendChild(rootUl);
+    }
+
+    function openFile(path) {
+      const isHtml = path.toLowerCase().endsWith('.html') || path.toLowerCase().endsWith('.htm');
+      const url = isHtml ? CUSTOM_DOMAIN + path : RAW_BASE + path;
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
+
+    function getRelativeTime() {
+      const times = [1,2,4,6,9,14,22,35,55,80,130];
+      const mins = times[Math.floor(Math.random() * times.length)];
+      return mins < 60 ? `${mins} phút trước` : `${Math.floor(mins/60)} giờ trước`;
+    }
+
+    function renderRealTimePanels(files) {
+      if (!files.length) return;
+
+      const sorted = [...files].sort((a,b) => b.path.localeCompare(a.path));
+
+      document.getElementById("latest-blocks").innerHTML = sorted.slice(0,8).map(f => `
+        <div class="event-item">
+          <span title="${f.path} - ${f.realTitle}"><span class="hash">${f.realTitle.slice(0,20)}${f.realTitle.length>20?'...':''}</span></span>
+          <span class="time">${getRelativeTime()}</span>
+        </div>
+      `).join('') || '<div style="text-align:center;padding:2rem;color:var(--text-secondary);">Chưa có mới</div>';
+
+      document.getElementById("latest-txs").innerHTML = sorted.slice(8,16).map(f => `
+        <div class="event-item">
+          <span>Hoạt động → <span class="hash">${f.realTitle.slice(0,24)}${f.realTitle.length>24?'...':''}</span></span>
+          <span class="time">${getRelativeTime()}</span>
+        </div>
+      `).join('') || '<div style="text-align:center;padding:2rem;color:var(--text-secondary);">Chưa có hoạt động</div>';
+    }
+
+    function updateTime() {
+      const timeStr = new Date().toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" });
+      document.getElementById("time").textContent = timeStr;
+      document.getElementById("timeMobile").textContent = timeStr;
+    }
+
+    document.getElementById("search").addEventListener("input", e => {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(() => {
+        const term = e.target.value.toLowerCase().trim();
+        if (!term) {
+          document.querySelectorAll(".tree li").forEach(el => el.style.display = "");
+          return;
+        }
+
+        document.querySelectorAll(".tree li").forEach(el => {
+          const text = (el.textContent + (el.title || "")).toLowerCase();
+          el.style.display = text.includes(term) ? "" : "none";
+        });
+
+        document.querySelectorAll(".folder").forEach(f => {
+          const hasVisibleChild = f.nextElementSibling?.querySelector('li:not([style*="display: none"])');
+          if (hasVisibleChild) f.classList.remove("closed");
+        });
+      }, 300);
+    });
+
+    // Mobile menu
+    const hamburger = document.getElementById("hamburger");
+    const sidebar = document.getElementById("sidebar");
+    const overlay = document.getElementById("overlay");
+
+    hamburger.addEventListener("click", () => {
+      sidebar.classList.toggle("open");
+      overlay.classList.toggle("open");
+    });
+
+    overlay.addEventListener("click", () => {
+      sidebar.classList.remove("open");
+      overlay.classList.remove("open");
+    });
+
+    // Bottom nav actions (ví dụ: search nav mở sidebar)
+    document.getElementById("searchNav").addEventListener("click", () => {
+      sidebar.classList.add("open");
+      overlay.classList.add("open");
+      document.getElementById("search").focus();
+    });
+
+    document.getElementById("homeNav").addEventListener("click", () => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    loadData();
+    setInterval(updateTime, 30000);
+  </script>
+</body>
+</html>
