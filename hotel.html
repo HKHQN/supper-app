@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="vi" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Quản lý Nhà nghỉ - Khách sạn - Quán hát</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: { extend: { colors: { primary: '#3b82f6' } } }
+    }
+  </script>
+  <!-- Firebase SDK v9 modular -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+    import { getDatabase, ref, onValue, set, update, remove, push } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+
+    window.firebaseApp = initializeApp({
+      databaseURL: "https://supperdatabase-default-rtdb.firebaseio.com/"
+    });
+    window.db = getDatabase(window.firebaseApp);
+  </script>
+  <style>
+    .modal { display: none; }
+    .modal.active { display: flex; }
+  </style>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen transition-colors">
+
+  <!-- Header -->
+  <header class="bg-white dark:bg-gray-800 shadow sticky top-0 z-10">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+      <h1 class="text-2xl font-bold text-primary">Quản lý Cơ sở Lưu trú & Quán hát</h1>
+      <button id="themeToggle" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
+        🌙
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="flex justify-between items-center mb-6">
+      <h2 class="text-xl font-semibold">Danh sách cơ sở</h2>
+      <button id="addBtn" class="bg-primary text-white px-6 py-2 rounded-lg shadow hover:bg-blue-700 transition">
+        + Thêm mới
+      </button>
+    </div>
+
+    <!-- Table -->
+    <div class="overflow-x-auto bg-white dark:bg-gray-800 rounded-xl shadow">
+      <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+        <thead class="bg-gray-50 dark:bg-gray-700">
+          <tr>
+            <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Tên</th>
+            <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Loại</th>
+            <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Địa chỉ</th>
+            <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">SĐT</th>
+            <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Giá (VNĐ)</th>
+            <th class="px-6 py-3 text-center text-xs font-medium uppercase tracking-wider">Hành động</th>
+          </tr>
+        </thead>
+        <tbody id="placeList" class="divide-y divide-gray-200 dark:divide-gray-700">
+          <!-- Data sẽ được render bằng JS -->
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <!-- Modal Form -->
+  <div id="modal" class="modal fixed inset-0 bg-black bg-opacity-50 items-center justify-center z-50 transition-opacity">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-lg w-full mx-4 p-6 transform transition-all scale-95">
+      <h3 id="modalTitle" class="text-xl font-bold mb-4">Thêm cơ sở mới</h3>
+      <form id="placeForm">
+        <input type="hidden" id="editId" />
+
+        <div class="mb-4">
+          <label class="block text-sm font-medium mb-1">Tên cơ sở</label>
+          <input type="text" id="name" required class="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-primary" />
+        </div>
+
+        <div class="mb-4">
+          <label class="block text-sm font-medium mb-1">Loại</label>
+          <select id="type" class="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600">
+            <option value="Nhà nghỉ">Nhà nghỉ</option>
+            <option value="Khách sạn">Khách sạn</option>
+            <option value="Quán hát / Karaoke">Quán hát / Karaoke</option>
+          </select>
+        </div>
+
+        <div class="mb-4">
+          <label class="block text-sm font-medium mb-1">Địa chỉ</label>
+          <input type="text" id="address" required class="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600" />
+        </div>
+
+        <div class="mb-4">
+          <label class="block text-sm font-medium mb-1">Số điện thoại</label>
+          <input type="tel" id="phone" class="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600" />
+        </div>
+
+        <div class="mb-6">
+          <label class="block text-sm font-medium mb-1">Giá tham khảo (VNĐ/đêm hoặc giờ)</label>
+          <input type="number" id="price" class="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600" placeholder="VD: 300000" />
+        </div>
+
+        <div class="flex justify-end gap-3">
+          <button type="button" id="cancelBtn" class="px-5 py-2 border rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">Hủy</button>
+          <button type="submit" class="bg-primary text-white px-6 py-2 rounded-lg hover:bg-blue-700">Lưu</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script type="module">
+    import { ref, onValue, set, update, remove, push } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+
+    const db = window.db;
+    const placesRef = ref(db, 'places');
+
+    const placeList = document.getElementById('placeList');
+    const modal = document.getElementById('modal');
+    const modalTitle = document.getElementById('modalTitle');
+    const form = document.getElementById('placeForm');
+    const editIdInput = document.getElementById('editId');
+    const addBtn = document.getElementById('addBtn');
+    const cancelBtn = document.getElementById('cancelBtn');
+    const themeToggle = document.getElementById('themeToggle');
+
+    // Theme toggle
+    if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      document.documentElement.classList.add('dark');
+      themeToggle.textContent = '☀️';
+    } else {
+      themeToggle.textContent = '🌙';
+    }
+
+    themeToggle.addEventListener('click', () => {
+      document.documentElement.classList.toggle('dark');
+      localStorage.theme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+      themeToggle.textContent = document.documentElement.classList.contains('dark') ? '☀️' : '🌙';
+    });
+
+    // Load & listen realtime
+    onValue(placesRef, (snapshot) => {
+      placeList.innerHTML = '';
+      const data = snapshot.val();
+      if (!data) {
+        placeList.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-gray-500">Chưa có dữ liệu. Hãy thêm mới!</td></tr>';
+        return;
+      }
+
+      Object.entries(data).forEach(([id, place]) => {
+        const row = document.createElement('tr');
+        row.className = 'hover:bg-gray-50 dark:hover:bg-gray-700 transition';
+        row.innerHTML = `
+          <td class="px-6 py-4 whitespace-nowrap font-medium">${place.name || '-'}</td>
+          <td class="px-6 py-4 whitespace-nowrap">${place.type || '-'}</td>
+          <td class="px-6 py-4">${place.address || '-'}</td>
+          <td class="px-6 py-4">${place.phone || '-'}</td>
+          <td class="px-6 py-4">${place.price ? place.price.toLocaleString('vi-VN') : '-'}</td>
+          <td class="px-6 py-4 text-center">
+            <button onclick="editPlace('${id}')" class="text-blue-600 hover:underline mr-3">Sửa</button>
+            <button onclick="deletePlace('${id}')" class="text-red-600 hover:underline">Xóa</button>
+          </td>
+        `;
+        placeList.appendChild(row);
+      });
+    });
+
+    // Open modal for add
+    addBtn.onclick = () => {
+      form.reset();
+      editIdInput.value = '';
+      modalTitle.textContent = 'Thêm cơ sở mới';
+      modal.classList.add('active');
+    };
+
+    // Close modal
+    cancelBtn.onclick = () => modal.classList.remove('active');
+    modal.onclick = (e) => { if (e.target === modal) modal.classList.remove('active'); };
+
+    // Save (Add or Update)
+    form.onsubmit = (e) => {
+      e.preventDefault();
+      const id = editIdInput.value;
+      const newData = {
+        name: document.getElementById('name').value.trim(),
+        type: document.getElementById('type').value,
+        address: document.getElementById('address').value.trim(),
+        phone: document.getElementById('phone').value.trim(),
+        price: Number(document.getElementById('price').value) || 0
+      };
+
+      if (!newData.name || !newData.address) {
+        alert('Vui lòng điền tên và địa chỉ!');
+        return;
+      }
+
+      if (id) {
+        // Update
+        update(ref(db, `places/${id}`), newData);
+      } else {
+        // Add new (push tạo key tự động)
+        push(placesRef, newData);
+      }
+
+      modal.classList.remove('active');
+      alert(id ? 'Cập nhật thành công!' : 'Thêm mới thành công!');
+    };
+
+    // Edit
+    window.editPlace = (id) => {
+      onValue(ref(db, `places/${id}`), (snap) => {
+        const place = snap.val();
+        if (!place) return;
+
+        editIdInput.value = id;
+        document.getElementById('name').value = place.name || '';
+        document.getElementById('type').value = place.type || 'Nhà nghỉ';
+        document.getElementById('address').value = place.address || '';
+        document.getElementById('phone').value = place.phone || '';
+        document.getElementById('price').value = place.price || '';
+
+        modalTitle.textContent = 'Sửa thông tin cơ sở';
+        modal.classList.add('active');
+      }, { onlyOnce: true });
+    };
+
+    // Delete
+    window.deletePlace = (id) => {
+      if (!confirm('Bạn chắc chắn muốn xóa?')) return;
+      remove(ref(db, `places/${id}`));
+      alert('Xóa thành công!');
+    };
+  </script>
+</body>
+</html>
