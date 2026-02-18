@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="vi" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Quản lý Dòng Tiền - Cash Flow Tracker</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: { extend: { colors: { primary: '#10b981' } } }
+    }
+  </script>
+  <!-- Firebase SDK -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+    import { getDatabase, ref, onValue, set, update, remove, push } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+
+    window.firebaseApp = initializeApp({
+      databaseURL: "https://supperdatabase-default-rtdb.firebaseio.com/"
+    });
+    window.db = getDatabase(window.firebaseApp);
+  </script>
+</head>
+<body class="bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 min-h-screen transition-colors">
+
+  <header class="bg-white dark:bg-gray-800 shadow sticky top-0 z-10">
+    <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+      <h1 class="text-2xl font-bold text-primary">Quản lý Dòng Tiền (Cash Flow)</h1>
+      <button id="themeToggle" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">🌙</button>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Summary Cards -->
+    <div class="lg:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow p-6 text-center">
+        <p class="text-sm text-gray-500 dark:text-gray-400">Tổng Thu</p>
+        <p id="totalIncome" class="text-3xl font-bold text-green-600">0 ₫</p>
+      </div>
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow p-6 text-center">
+        <p class="text-sm text-gray-500 dark:text-gray-400">Tổng Chi</p>
+        <p id="totalExpense" class="text-3xl font-bold text-red-600">0 ₫</p>
+      </div>
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow p-6 text-center">
+        <p class="text-sm text-gray-500 dark:text-gray-400">Dòng tiền ròng</p>
+        <p id="netCashFlow" class="text-3xl font-bold">0 ₫</p>
+      </div>
+    </div>
+
+    <!-- Chart & Form -->
+    <div class="lg:col-span-2 space-y-6">
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow p-6">
+        <h2 class="text-lg font-semibold mb-4">Biểu đồ Thu/Chi</h2>
+        <canvas id="cashChart" height="200"></canvas>
+      </div>
+
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow p-6">
+        <h2 class="text-lg font-semibold mb-4">Thêm giao dịch mới</h2>
+        <form id="transactionForm" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm mb-1">Mô tả</label>
+            <input type="text" id="description" required class="w-full px-4 py-2 border rounded dark:bg-gray-700 dark:border-gray-600" placeholder="VD: Lương tháng 2" />
+          </div>
+          <div>
+            <label class="block text-sm mb-1">Số tiền (VNĐ)</label>
+            <input type="number" id="amount" required min="1" class="w-full px-4 py-2 border rounded dark:bg-gray-700 dark:border-gray-600" placeholder="1000000" />
+          </div>
+          <div>
+            <label class="block text-sm mb-1">Loại</label>
+            <select id="type" class="w-full px-4 py-2 border rounded dark:bg-gray-700 dark:border-gray-600">
+              <option value="income">Thu nhập</option>
+              <option value="expense">Chi tiêu</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm mb-1">Ngày</label>
+            <input type="date" id="date" required class="w-full px-4 py-2 border rounded dark:bg-gray-700 dark:border-gray-600" value="" />
+          </div>
+          <div class="md:col-span-2 flex justify-end gap-3">
+            <button type="button" id="cancelEdit" class="hidden px-5 py-2 border rounded hover:bg-gray-100 dark:hover:bg-gray-700">Hủy</button>
+            <button type="submit" class="bg-primary text-white px-6 py-2 rounded hover:bg-emerald-700">Lưu</button>
+          </div>
+          <input type="hidden" id="editId" />
+        </form>
+      </div>
+    </div>
+
+    <!-- Transactions List -->
+    <div class="space-y-6">
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow p-5">
+        <h2 class="text-lg font-semibold mb-3">Danh sách giao dịch</h2>
+        <div id="transactionList" class="space-y-3 max-h-96 overflow-y-auto"></div>
+      </div>
+    </div>
+  </main>
+
+  <script type="module">
+    import { ref, onValue, set, update, remove, push } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+
+    const db = window.db;
+    const transRef = ref(db, 'cashflow/transactions');
+
+    const form = document.getElementById('transactionForm');
+    const editIdInput = document.getElementById('editId');
+    const cancelEdit = document.getElementById('cancelEdit');
+    const transactionList = document.getElementById('transactionList');
+    const totalIncomeEl = document.getElementById('totalIncome');
+    const totalExpenseEl = document.getElementById('totalExpense');
+    const netCashFlowEl = document.getElementById('netCashFlow');
+
+    let chart;
+
+    // Theme toggle
+    const themeToggle = document.getElementById('themeToggle');
+    if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      document.documentElement.classList.add('dark');
+      themeToggle.textContent = '☀️';
+    }
+    themeToggle.onclick = () => {
+      document.documentElement.classList.toggle('dark');
+      localStorage.theme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+      themeToggle.textContent = document.documentElement.classList.contains('dark') ? '☀️' : '🌙';
+    };
+
+    // Set default date to today
+    document.getElementById('date').value = new Date().toISOString().split('T')[0];
+
+    // Realtime listener
+    onValue(transRef, snap => {
+      const data = snap.val() || {};
+      renderTransactions(data);
+      updateSummaryAndChart(data);
+    });
+
+    function renderTransactions(data) {
+      transactionList.innerHTML = '';
+      Object.entries(data).forEach(([id, trans]) => {
+        const isIncome = trans.type === 'income';
+        const div = document.createElement('div');
+        div.className = `p-4 rounded-lg border ${isIncome ? 'border-green-200 bg-green-50 dark:bg-green-900/30' : 'border-red-200 bg-red-50 dark:bg-red-900/30'} flex justify-between items-center`;
+        div.innerHTML = `
+          <div>
+            <p class="font-medium">${trans.description}</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400">${trans.date} • ${trans.type === 'income' ? 'Thu nhập' : 'Chi tiêu'}</p>
+          </div>
+          <div class="text-right">
+            <p class="font-bold ${isIncome ? 'text-green-600' : 'text-red-600'}">${Number(trans.amount).toLocaleString('vi-VN')} ₫</p>
+            <div class="mt-1">
+              <button onclick="editTrans('${id}')" class="text-blue-600 text-sm mr-2">Sửa</button>
+              <button onclick="deleteTrans('${id}')" class="text-red-600 text-sm">Xóa</button>
+            </div>
+          </div>
+        `;
+        transactionList.appendChild(div);
+      });
+      if (Object.keys(data).length === 0) {
+        transactionList.innerHTML = '<p class="text-center text-gray-500 py-8">Chưa có giao dịch nào. Hãy thêm mới!</p>';
+      }
+    }
+
+    function updateSummaryAndChart(data) {
+      let income = 0, expense = 0;
+      Object.values(data).forEach(t => {
+        if (t.type === 'income') income += Number(t.amount);
+        else expense += Number(t.amount);
+      });
+      const net = income - expense;
+
+      totalIncomeEl.textContent = income.toLocaleString('vi-VN') + ' ₫';
+      totalExpenseEl.textContent = expense.toLocaleString('vi-VN') + ' ₫';
+      netCashFlowEl.textContent = net.toLocaleString('vi-VN') + ' ₫';
+      netCashFlowEl.className = `text-3xl font-bold ${net >= 0 ? 'text-green-600' : 'text-red-600'}`;
+
+      // Update chart
+      const ctx = document.getElementById('cashChart').getContext('2d');
+      if (chart) chart.destroy();
+      chart = new Chart(ctx, {
+        type: 'pie',
+        data: {
+          labels: ['Thu nhập', 'Chi tiêu'],
+          datasets: [{
+            data: [income, expense],
+            backgroundColor: ['#10b981', '#ef4444'],
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { position: 'bottom' } }
+        }
+      });
+    }
+
+    // Form submit
+    form.onsubmit = e => {
+      e.preventDefault();
+      const id = editIdInput.value;
+      const newTrans = {
+        description: document.getElementById('description').value.trim(),
+        amount: Number(document.getElementById('amount').value),
+        type: document.getElementById('type').value,
+        date: document.getElementById('date').value
+      };
+
+      if (!newTrans.description || !newTrans.amount || !newTrans.date) {
+        alert('Vui lòng điền đầy đủ!');
+        return;
+      }
+
+      if (id) {
+        update(ref(db, `cashflow/transactions/${id}`), newTrans);
+      } else {
+        push(ref(db, 'cashflow/transactions'), newTrans);
+      }
+
+      form.reset();
+      editIdInput.value = '';
+      cancelEdit.classList.add('hidden');
+      document.getElementById('date').value = new Date().toISOString().split('T')[0];
+      alert(id ? 'Cập nhật thành công!' : 'Thêm giao dịch thành công!');
+    };
+
+    cancelEdit.onclick = () => {
+      form.reset();
+      editIdInput.value = '';
+      cancelEdit.classList.add('hidden');
+      document.getElementById('date').value = new Date().toISOString().split('T')[0];
+    };
+
+    window.editTrans = id => {
+      onValue(ref(db, `cashflow/transactions/${id}`), snap => {
+        const t = snap.val();
+        if (!t) return;
+        document.getElementById('description').value = t.description;
+        document.getElementById('amount').value = t.amount;
+        document.getElementById('type').value = t.type;
+        document.getElementById('date').value = t.date;
+        editIdInput.value = id;
+        cancelEdit.classList.remove('hidden');
+      }, { onlyOnce: true });
+    };
+
+    window.deleteTrans = id => {
+      if (!confirm('Xóa giao dịch này?')) return;
+      remove(ref(db, `cashflow/transactions/${id}`));
+    };
+  </script>
+</body>
+</html>
