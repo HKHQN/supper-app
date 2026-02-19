@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="vi" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Quản lý Tiệm Internet & Trông Xe</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: { extend: { colors: { primary: '#3b82f6' } } }
+    }
+  </script>
+  <!-- Firebase SDK -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+    import { getDatabase, ref, onValue, set, update, remove, push, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+
+    window.firebaseApp = initializeApp({
+      databaseURL: "https://supperdatabase-default-rtdb.firebaseio.com/"
+    });
+    window.db = getDatabase(window.firebaseApp);
+  </script>
+</head>
+<body class="bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 min-h-screen transition-colors">
+
+  <header class="bg-white dark:bg-gray-800 shadow sticky top-0 z-10">
+    <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+      <h1 class="text-2xl font-bold text-primary">Quản lý Tiệm Internet & Trông Xe</h1>
+      <button id="themeToggle" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">🌙</button>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Summary Cards -->
+    <div class="lg:col-span-3 grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow p-6 text-center">
+        <p class="text-sm text-gray-500 dark:text-gray-400">Tổng Thu Net</p>
+        <p id="totalNetIncome" class="text-3xl font-bold text-blue-600">0 ₫</p>
+      </div>
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow p-6 text-center">
+        <p class="text-sm text-gray-500 dark:text-gray-400">Tổng Thu Trông Xe</p>
+        <p id="totalParkingIncome" class="text-3xl font-bold text-green-600">0 ₫</p>
+      </div>
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow p-6 text-center">
+        <p class="text-sm text-gray-500 dark:text-gray-400">Tổng Chi</p>
+        <p id="totalExpense" class="text-3xl font-bold text-red-600">0 ₫</p>
+      </div>
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow p-6 text-center">
+        <p class="text-sm text-gray-500 dark:text-gray-400">Dòng tiền ròng</p>
+        <p id="netCashFlow" class="text-3xl font-bold">0 ₫</p>
+      </div>
+    </div>
+
+    <!-- Chart & Forms -->
+    <div class="lg:col-span-2 space-y-6">
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow p-6">
+        <h2 class="text-lg font-semibold mb-4">Biểu đồ Thu/Chi</h2>
+        <canvas id="cashChart" height="200"></canvas>
+      </div>
+
+      <!-- Net Transaction Form -->
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow p-6">
+        <h2 class="text-lg font-semibold mb-4">Thêm giao dịch Net/Chi tiêu</h2>
+        <form id="netForm" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm mb-1">Mô tả (VD: Máy 5 - 2 giờ)</label>
+            <input type="text" id="netDesc" required class="w-full px-4 py-2 border rounded dark:bg-gray-700 dark:border-gray-600" />
+          </div>
+          <div>
+            <label class="block text-sm mb-1">Số tiền (VNĐ)</label>
+            <input type="number" id="netAmount" required min="1" class="w-full px-4 py-2 border rounded dark:bg-gray-700 dark:border-gray-600" />
+          </div>
+          <div>
+            <label class="block text-sm mb-1">Loại</label>
+            <select id="netType" class="w-full px-4 py-2 border rounded dark:bg-gray-700 dark:border-gray-600">
+              <option value="net">Thu Net</option>
+              <option value="expense">Chi tiêu</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm mb-1">Ngày</label>
+            <input type="date" id="netDate" required class="w-full px-4 py-2 border rounded dark:bg-gray-700 dark:border-gray-600" value="" />
+          </div>
+          <div class="md:col-span-2 flex justify-end gap-3">
+            <button type="button" id="netCancel" class="hidden px-5 py-2 border rounded hover:bg-gray-100 dark:hover:bg-gray-700">Hủy</button>
+            <button type="submit" class="bg-primary text-white px-6 py-2 rounded hover:bg-blue-700">Lưu</button>
+          </div>
+          <input type="hidden" id="netEditId" />
+        </form>
+      </div>
+
+      <!-- Parking Form -->
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow p-6">
+        <h2 class="text-lg font-semibold mb-4">Quản lý Trông Xe (Đặc biệt)</h2>
+        <form id="parkingForm" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm mb-1">Biển số xe</label>
+            <input type="text" id="plate" required class="w-full px-4 py-2 border rounded dark:bg-gray-700 dark:border-gray-600" placeholder="VD: 30A-12345" />
+          </div>
+          <div>
+            <label class="block text-sm mb-1">Loại xe</label>
+            <select id="vehicleType" class="w-full px-4 py-2 border rounded dark:bg-gray-700 dark:border-gray-600">
+              <option value="xe máy">Xe máy</option>
+              <option value="ô tô">Ô tô</option>
+              <option value="xe đạp">Xe đạp</option>
+            </select>
+          </div>
+          <div class="md:col-span-2">
+            <button type="submit" id="checkInBtn" class="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700 w-full md:w-auto">Xe Vào</button>
+            <button type="button" id="checkOutBtn" class="bg-red-600 text-white px-6 py-2 rounded hover:bg-red-700 w-full md:w-auto mt-2 md:mt-0 md:ml-4">Xe Ra (Tính phí)</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Lists -->
+    <div class="space-y-6">
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow p-5">
+        <h2 class="text-lg font-semibold mb-3">Danh sách Giao dịch</h2>
+        <div id="transactionList" class="space-y-3 max-h-60 overflow-y-auto"></div>
+      </div>
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow p-5">
+        <h2 class="text-lg font-semibold mb-3">Xe đang trông</h2>
+        <div id="parkingList" class="space-y-3 max-h-60 overflow-y-auto"></div>
+      </div>
+    </div>
+  </main>
+
+  <script type="module">
+    import { ref, onValue, set, update, remove, push, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+
+    const db = window.db;
+    const transRef = ref(db, 'internetshop/transactions');
+    const parkingRef = ref(db, 'internetshop/parking');
+
+    // Elements
+    const netForm = document.getElementById('netForm');
+    const netEditId = document.getElementById('netEditId');
+    const netCancel = document.getElementById('netCancel');
+    const parkingForm = document.getElementById('parkingForm');
+    const checkInBtn = document.getElementById('checkInBtn');
+    const checkOutBtn = document.getElementById('checkOutBtn');
+    const transactionList = document.getElementById('transactionList');
+    const parkingList = document.getElementById('parkingList');
+    const totalNetIncomeEl = document.getElementById('totalNetIncome');
+    const totalParkingIncomeEl = document.getElementById('totalParkingIncome');
+    const totalExpenseEl = document.getElementById('totalExpense');
+    const netCashFlowEl = document.getElementById('netCashFlow');
+
+    let chart;
+    const parkingFeePerHour = 5000; // Phí trông xe/giờ (có thể chỉnh)
+
+    // Theme toggle (giống gốc)
+    const themeToggle = document.getElementById('themeToggle');
+    if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      document.documentElement.classList.add('dark');
+      themeToggle.textContent = '☀️';
+    }
+    themeToggle.onclick = () => {
+      document.documentElement.classList.toggle('dark');
+      localStorage.theme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+      themeToggle.textContent = document.documentElement.classList.contains('dark') ? '☀️' : '🌙';
+    };
+
+    // Default date
+    document.getElementById('netDate').value = new Date().toISOString().split('T')[0];
+
+    // Realtime listeners
+    onValue(transRef, snap => {
+      const data = snap.val() || {};
+      renderTransactions(data);
+      updateSummaryAndChart(data);
+    });
+
+    onValue(parkingRef, snap => {
+      const data = snap.val() || {};
+      renderParking(data);
+    });
+
+    function renderTransactions(data) {
+      transactionList.innerHTML = '';
+      Object.entries(data).forEach(([id, trans]) => {
+        const color = trans.type === 'net' ? 'blue' : trans.type === 'parking' ? 'green' : 'red';
+        const div = document.createElement('div');
+        div.className = `p-4 rounded-lg border border-${color}-200 bg-${color}-50 dark:bg-${color}-900/30 flex justify-between items-center`;
+        div.innerHTML = `
+          <div>
+            <p class="font-medium">${trans.description}</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400">${trans.date} • ${trans.type === 'net' ? 'Thu Net' : trans.type === 'parking' ? 'Thu Trông Xe' : 'Chi tiêu'}</p>
+          </div>
+          <div class="text-right">
+            <p class="font-bold text-${color}-600">${Number(trans.amount).toLocaleString('vi-VN')} ₫</p>
+            <div class="mt-1">
+              <button onclick="editTrans('${id}')" class="text-blue-600 text-sm mr-2">Sửa</button>
+              <button onclick="deleteTrans('${id}')" class="text-red-600 text-sm">Xóa</button>
+            </div>
+          </div>
+        `;
+        transactionList.appendChild(div);
+      });
+      if (!Object.keys(data).length) transactionList.innerHTML = '<p class="text-center text-gray-500 py-4">Chưa có giao dịch</p>';
+    }
+
+    function renderParking(data) {
+      parkingList.innerHTML = '';
+      Object.entries(data).forEach(([id, park]) => {
+        if (park.outTime) return; // Chỉ hiển thị xe đang trông
+        const div = document.createElement('div');
+        div.className = 'p-4 rounded-lg border border-gray-200 bg-gray-50 dark:bg-gray-700 flex justify-between items-center';
+        div.innerHTML = `
+          <div>
+            <p class="font-medium">${park.plate} (${park.vehicleType})</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400">Vào: ${new Date(park.inTime).toLocaleString('vi-VN')}</p>
+          </div>
+          <button onclick="checkOut('${id}')" class="text-red-600 text-sm">Ra</button>
+        `;
+        parkingList.appendChild(div);
+      });
+      if (!Object.keys(data).length) parkingList.innerHTML = '<p class="text-center text-gray-500 py-4">Chưa có xe</p>';
+    }
+
+    function updateSummaryAndChart(transData) {
+      let netIncome = 0, parkingIncome = 0, expense = 0;
+      Object.values(transData).forEach(t => {
+        if (t.type === 'net') netIncome += Number(t.amount);
+        else if (t.type === 'parking') parkingIncome += Number(t.amount);
+        else expense += Number(t.amount);
+      });
+      const net = netIncome + parkingIncome - expense;
+
+      totalNetIncomeEl.textContent = netIncome.toLocaleString('vi-VN') + ' ₫';
+      totalParkingIncomeEl.textContent = parkingIncome.toLocaleString('vi-VN') + ' ₫';
+      totalExpenseEl.textContent = expense.toLocaleString('vi-VN') + ' ₫';
+      netCashFlowEl.textContent = net.toLocaleString('vi-VN') + ' ₫';
+      netCashFlowEl.className = `text-3xl font-bold ${net >= 0 ? 'text-green-600' : 'text-red-600'}`;
+
+      const ctx = document.getElementById('cashChart').getContext('2d');
+      if (chart) chart.destroy();
+      chart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: ['Thu Net', 'Thu Trông Xe', 'Chi tiêu'],
+          datasets: [{
+            data: [netIncome, parkingIncome, expense],
+            backgroundColor: ['#3b82f6', '#10b981', '#ef4444']
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: { y: { beginAtZero: true } },
+          plugins: { legend: { display: false } }
+        }
+      });
+    }
+
+    // Net/Expense Form
+    netForm.onsubmit = e => {
+      e.preventDefault();
+      const id = netEditId.value;
+      const newTrans = {
+        description: document.getElementById('netDesc').value.trim(),
+        amount: Number(document.getElementById('netAmount').value),
+        type: document.getElementById('netType').value,
+        date: document.getElementById('netDate').value
+      };
+
+      if (!newTrans.description || !newTrans.amount || !newTrans.date) return alert('Điền đầy đủ!');
+
+      if (id) {
+        update(ref(db, `internetshop/transactions/${id}`), newTrans);
+      } else {
+        push(transRef, newTrans);
+      }
+
+      netForm.reset();
+      netEditId.value = '';
+      netCancel.classList.add('hidden');
+      document.getElementById('netDate').value = new Date().toISOString().split('T')[0];
+    };
+
+    netCancel.onclick = () => {
+      netForm.reset();
+      netEditId.value = '';
+      netCancel.classList.add('hidden');
+      document.getElementById('netDate').value = new Date().toISOString().split('T')[0];
+    };
+
+    window.editTrans = id => {
+      onValue(ref(db, `internetshop/transactions/${id}`), snap => {
+        const t = snap.val();
+        document.getElementById('netDesc').value = t.description;
+        document.getElementById('netAmount').value = t.amount;
+        document.getElementById('netType').value = t.type;
+        document.getElementById('netDate').value = t.date;
+        netEditId.value = id;
+        netCancel.classList.remove('hidden');
+      }, { onlyOnce: true });
+    };
+
+    window.deleteTrans = id => {
+      if (!confirm('Xóa giao dịch?')) return;
+      remove(ref(db, `internetshop/transactions/${id}`));
+    };
+
+    // Parking
+    checkInBtn.onclick = e => {
+      e.preventDefault();
+      const plate = document.getElementById('plate').value.trim().toUpperCase();
+      const vehicleType = document.getElementById('vehicleType').value;
+
+      if (!plate) return alert('Nhập biển số!');
+
+      const newPark = {
+        plate,
+        vehicleType,
+        inTime: serverTimestamp()
+      };
+      push(parkingRef, newPark);
+      parkingForm.reset();
+      alert('Xe vào thành công!');
+    };
+
+    checkOutBtn.onclick = e => {
+      e.preventDefault();
+      const plate = document.getElementById('plate').value.trim().toUpperCase();
+      if (!plate) return alert('Nhập biển số để ra!');
+
+      // Tìm xe theo biển số
+      onValue(parkingRef, snap => {
+        const data = snap.val();
+        let foundId = null;
+        Object.entries(data || {}).forEach(([id, p]) => {
+          if (p.plate === plate && !p.outTime) foundId = id;
+        });
+
+        if (foundId) checkOut(foundId);
+        else alert('Không tìm thấy xe!');
+      }, { onlyOnce: true });
+    };
+
+    window.checkOut = id => {
+      const outTime = Date.now();
+      onValue(ref(db, `internetshop/parking/${id}`), snap => {
+        const p = snap.val();
+        if (!p || p.outTime) return;
+
+        const duration = (outTime - p.inTime) / (1000 * 3600); // Giờ
+        const fee = Math.ceil(duration) * parkingFeePerHour;
+
+        update(ref(db, `internetshop/parking/${id}`), { outTime });
+
+        // Thêm vào giao dịch
+        push(transRef, {
+          description: `Trông xe ${p.plate} (${Math.ceil(duration)} giờ)`,
+          amount: fee,
+          type: 'parking',
+          date: new Date().toISOString().split('T')[0]
+        });
+
+        alert(`Phí trông xe: ${fee.toLocaleString('vi-VN')} ₫`);
+      }, { onlyOnce: true });
+    };
+  </script>
+</body>
+</html>
