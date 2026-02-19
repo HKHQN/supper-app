@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Nghe Nhạc & Lưu Vào Firebase</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #121212;
+      color: #fff;
+      margin: 0;
+      padding: 20px;
+    }
+    h1 {
+      text-align: center;
+      color: #1db954;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    .player {
+      background: #1e1e1e;
+      padding: 20px;
+      border-radius: 12px;
+      margin-bottom: 25px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    }
+    audio {
+      width: 100%;
+      margin: 15px 0;
+    }
+    input, button {
+      padding: 10px;
+      margin: 8px 4px;
+      border-radius: 6px;
+      border: none;
+      font-size: 1rem;
+    }
+    button {
+      background: #1db954;
+      color: white;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #1ed760;
+    }
+    #songList {
+      list-style: none;
+      padding: 0;
+    }
+    #songList li {
+      background: #282828;
+      margin: 10px 0;
+      padding: 15px;
+      border-radius: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: 0.2s;
+    }
+    #songList li:hover {
+      background: #3a3a3a;
+    }
+    #songList button {
+      background: #e63946;
+      padding: 8px 14px;
+      font-size: 0.9rem;
+    }
+    #loopInfo {
+      text-align: center;
+      margin: 15px 0;
+      color: #b3b3b3;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>Nghe Nhạc & Lưu Firebase</h1>
+
+  <div class="player">
+    <h2>Đang phát: <span id="currentTitle">Chưa chọn bài</span></h2>
+    <audio id="audioPlayer" controls></audio>
+
+    <div>
+      <input type="text" id="songTitle" placeholder="Tên bài hát (bắt buộc)" style="width:220px;" />
+      <input type="file" id="songFile" accept="audio/*" />
+      <button onclick="uploadAndSave()">Upload & Lưu</button>
+    </div>
+  </div>
+
+  <div id="loopInfo">Danh sách bài hát đã lưu (tự động cập nhật realtime)</div>
+  <ul id="songList"></ul>
+</div>
+
+<!-- Firebase SDK v9 compat (dễ dùng với CDN) -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+<script>
+// Khởi tạo Firebase (chỉ cần databaseURL)
+const firebaseConfig = {
+  databaseURL: "https://supperdatabase-default-rtdb.firebaseio.com/"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+const songsRef = db.ref("songs");  // Lưu tất cả bài hát dưới node "songs"
+
+// Element
+const audio = document.getElementById("audioPlayer");
+const currentTitle = document.getElementById("currentTitle");
+const songList = document.getElementById("songList");
+
+// Phát bài hát khi click
+function playSong(url, title) {
+  audio.src = url;
+  audio.play().catch(err => alert("Không phát được: " + err));
+  currentTitle.textContent = title || "Không có tiêu đề";
+}
+
+// Xóa bài hát
+function deleteSong(key) {
+  if (confirm("Xóa bài này?")) {
+    songsRef.child(key).remove();
+  }
+}
+
+// Hiển thị danh sách (realtime)
+songsRef.on("value", (snapshot) => {
+  songList.innerHTML = "";
+  const data = snapshot.val();
+
+  if (!data) {
+    songList.innerHTML = "<li>Chưa có bài hát nào được lưu.</li>";
+    return;
+  }
+
+  Object.entries(data).forEach(([key, song]) => {
+    const li = document.createElement("li");
+    li.innerHTML = `
+      <span>
+        <strong>${song.title || "Không tên"}</strong>
+        <br><small>${song.url.substring(0, 60)}${song.url.length > 60 ? "..." : ""}</small>
+      </span>
+      <button onclick="playSong('${song.url}', '${song.title.replace(/'/g, "\\'")}')">Phát</button>
+      <button onclick="deleteSong('${key}')">Xóa</button>
+    `;
+    songList.appendChild(li);
+  });
+});
+
+// Upload file local → chuyển thành URL tạm thời → lưu vào Firebase
+function uploadAndSave() {
+  const title = document.getElementById("songTitle").value.trim();
+  const fileInput = document.getElementById("songFile");
+
+  if (!title) {
+    alert("Vui lòng nhập tên bài hát!");
+    return;
+  }
+  if (!fileInput.files.length) {
+    alert("Vui lòng chọn file nhạc!");
+    return;
+  }
+
+  const file = fileInput.files[0];
+  const objectURL = URL.createObjectURL(file); // URL tạm thời (chỉ tồn tại trong phiên)
+
+  // Lưu vào Firebase (dùng push để tạo key tự động)
+  songsRef.push({
+    title: title,
+    url: objectURL,       // Lưu URL tạm (blob)
+    uploadedAt: Date.now()
+  })
+  .then(() => {
+    alert("Đã lưu bài hát: " + title);
+    document.getElementById("songTitle").value = "";
+    fileInput.value = ""; // reset input file
+  })
+  .catch(err => {
+    alert("Lỗi khi lưu: " + err.message);
+  });
+}
+
+// Bonus: Tự động phát bài tiếp theo khi kết thúc (loop playlist đơn giản)
+audio.addEventListener("ended", () => {
+  const buttons = songList.querySelectorAll("button[onclick^='playSong']");
+  if (buttons.length === 0) return;
+
+  // Tìm bài đang phát hiện tại
+  let currentUrl = audio.src;
+  let found = false;
+  let nextBtn = null;
+
+  for (let btn of buttons) {
+    if (found) {
+      nextBtn = btn;
+      break;
+    }
+    if (btn.getAttribute("onclick").includes(currentUrl)) {
+      found = true;
+    }
+  }
+
+  // Nếu không tìm thấy next → quay về bài đầu
+  if (!nextBtn && buttons.length > 0) {
+    nextBtn = buttons[0];
+  }
+
+  if (nextBtn) {
+    nextBtn.click();
+  }
+});
+</script>
+
+</body>
+</html>
