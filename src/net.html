@@ -81,7 +81,7 @@
           </div>
           <div>
             <label class="block text-sm mb-1">Ngày</label>
-            <input type="date" id="netDate" required class="w-full px-4 py-2 border rounded dark:bg-gray-700 dark:border-gray-600" value="" />
+            <input type="date" id="netDate" required class="w-full px-4 py-2 border rounded dark:bg-gray-700 dark:border-gray-600" />
           </div>
           <div class="md:col-span-2 flex justify-end gap-3">
             <button type="button" id="netCancel" class="hidden px-5 py-2 border rounded hover:bg-gray-100 dark:hover:bg-gray-700">Hủy</button>
@@ -118,9 +118,17 @@
     <!-- Lists -->
     <div class="space-y-6">
       <div class="bg-white dark:bg-gray-800 rounded-xl shadow p-5">
-        <h2 class="text-lg font-semibold mb-3">Danh sách Giao dịch</h2>
-        <div id="transactionList" class="space-y-3 max-h-60 overflow-y-auto"></div>
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-3 gap-3">
+          <h2 class="text-lg font-semibold">Danh sách Giao dịch</h2>
+          <div class="flex items-center gap-2">
+            <label class="text-sm whitespace-nowrap">Lọc theo ngày:</label>
+            <input type="date" id="filterDate" class="px-3 py-1.5 border rounded dark:bg-gray-700 dark:border-gray-600 text-sm" />
+            <button id="clearFilter" class="text-sm text-blue-600 hover:underline">Tất cả</button>
+          </div>
+        </div>
+        <div id="transactionList" class="space-y-3 max-h-96 overflow-y-auto"></div>
       </div>
+
       <div class="bg-white dark:bg-gray-800 rounded-xl shadow p-5">
         <h2 class="text-lg font-semibold mb-3">Xe đang trông</h2>
         <div id="parkingList" class="space-y-3 max-h-60 overflow-y-auto"></div>
@@ -148,11 +156,14 @@
     const totalParkingIncomeEl = document.getElementById('totalParkingIncome');
     const totalExpenseEl = document.getElementById('totalExpense');
     const netCashFlowEl = document.getElementById('netCashFlow');
+    const filterDateInput = document.getElementById('filterDate');
+    const clearFilterBtn = document.getElementById('clearFilter');
 
     let chart;
-    const parkingFeePerHour = 5000; // Phí trông xe/giờ (có thể chỉnh)
+    let allTransactions = {}; // Lưu toàn bộ transactions để lọc client-side
+    const parkingFeePerHour = 5000;
 
-    // Theme toggle (giống gốc)
+    // Theme toggle
     const themeToggle = document.getElementById('themeToggle');
     if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
       document.documentElement.classList.add('dark');
@@ -164,14 +175,17 @@
       themeToggle.textContent = document.documentElement.classList.contains('dark') ? '☀️' : '🌙';
     };
 
-    // Default date
-    document.getElementById('netDate').value = new Date().toISOString().split('T')[0];
+    // Default dates
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('netDate').value = today;
+    filterDateInput.value = ''; // Không lọc ngày mặc định
 
-    // Realtime listeners
+    // Lắng nghe toàn bộ transactions
     onValue(transRef, snap => {
-      const data = snap.val() || {};
-      renderTransactions(data);
-      updateSummaryAndChart(data);
+      allTransactions = snap.val() || {};
+      const selectedDate = filterDateInput.value;
+      renderTransactions(allTransactions, selectedDate);
+      updateSummaryAndChart(allTransactions, selectedDate);
     });
 
     onValue(parkingRef, snap => {
@@ -179,9 +193,17 @@
       renderParking(data);
     });
 
-    function renderTransactions(data) {
+    function getFilteredTransactions(data, selectedDate) {
+      if (!selectedDate) return data;
+      return Object.fromEntries(
+        Object.entries(data).filter(([_, t]) => t.date === selectedDate)
+      );
+    }
+
+    function renderTransactions(data, selectedDate = '') {
+      const filtered = getFilteredTransactions(data, selectedDate);
       transactionList.innerHTML = '';
-      Object.entries(data).forEach(([id, trans]) => {
+      Object.entries(filtered).forEach(([id, trans]) => {
         const color = trans.type === 'net' ? 'blue' : trans.type === 'parking' ? 'green' : 'red';
         const div = document.createElement('div');
         div.className = `p-4 rounded-lg border border-${color}-200 bg-${color}-50 dark:bg-${color}-900/30 flex justify-between items-center`;
@@ -200,13 +222,15 @@
         `;
         transactionList.appendChild(div);
       });
-      if (!Object.keys(data).length) transactionList.innerHTML = '<p class="text-center text-gray-500 py-4">Chưa có giao dịch</p>';
+      if (!Object.keys(filtered).length) {
+        transactionList.innerHTML = '<p class="text-center text-gray-500 py-8">Chưa có giao dịch' + (selectedDate ? ` trong ngày ${selectedDate}` : '') + '</p>';
+      }
     }
 
     function renderParking(data) {
       parkingList.innerHTML = '';
       Object.entries(data).forEach(([id, park]) => {
-        if (park.outTime) return; // Chỉ hiển thị xe đang trông
+        if (park.outTime) return;
         const div = document.createElement('div');
         div.className = 'p-4 rounded-lg border border-gray-200 bg-gray-50 dark:bg-gray-700 flex justify-between items-center';
         div.innerHTML = `
@@ -218,16 +242,21 @@
         `;
         parkingList.appendChild(div);
       });
-      if (!Object.keys(data).length) parkingList.innerHTML = '<p class="text-center text-gray-500 py-4">Chưa có xe</p>';
+      if (!Object.keys(data).length || !Object.values(data).some(p => !p.outTime)) {
+        parkingList.innerHTML = '<p class="text-center text-gray-500 py-4">Chưa có xe</p>';
+      }
     }
 
-    function updateSummaryAndChart(transData) {
+    function updateSummaryAndChart(data, selectedDate = '') {
+      const filtered = getFilteredTransactions(data, selectedDate);
       let netIncome = 0, parkingIncome = 0, expense = 0;
-      Object.values(transData).forEach(t => {
+
+      Object.values(filtered).forEach(t => {
         if (t.type === 'net') netIncome += Number(t.amount);
         else if (t.type === 'parking') parkingIncome += Number(t.amount);
         else expense += Number(t.amount);
       });
+
       const net = netIncome + parkingIncome - expense;
 
       totalNetIncomeEl.textContent = netIncome.toLocaleString('vi-VN') + ' ₫';
@@ -255,7 +284,20 @@
       });
     }
 
-    // Net/Expense Form
+    // Lọc theo ngày
+    filterDateInput.onchange = () => {
+      const selected = filterDateInput.value;
+      renderTransactions(allTransactions, selected);
+      updateSummaryAndChart(allTransactions, selected);
+    };
+
+    clearFilterBtn.onclick = () => {
+      filterDateInput.value = '';
+      renderTransactions(allTransactions);
+      updateSummaryAndChart(allTransactions);
+    };
+
+    // Net/Expense Form submit
     netForm.onsubmit = e => {
       e.preventDefault();
       const id = netEditId.value;
@@ -266,7 +308,7 @@
         date: document.getElementById('netDate').value
       };
 
-      if (!newTrans.description || !newTrans.amount || !newTrans.date) return alert('Điền đầy đủ!');
+      if (!newTrans.description || !newTrans.amount || !newTrans.date) return alert('Điền đầy đủ thông tin!');
 
       if (id) {
         update(ref(db, `internetshop/transactions/${id}`), newTrans);
@@ -300,24 +342,23 @@
     };
 
     window.deleteTrans = id => {
-      if (!confirm('Xóa giao dịch?')) return;
+      if (!confirm('Xóa giao dịch này?')) return;
       remove(ref(db, `internetshop/transactions/${id}`));
     };
 
-    // Parking
+    // Parking check-in
     checkInBtn.onclick = e => {
       e.preventDefault();
       const plate = document.getElementById('plate').value.trim().toUpperCase();
       const vehicleType = document.getElementById('vehicleType').value;
 
-      if (!plate) return alert('Nhập biển số!');
+      if (!plate) return alert('Vui lòng nhập biển số xe!');
 
-      const newPark = {
+      push(parkingRef, {
         plate,
         vehicleType,
         inTime: serverTimestamp()
-      };
-      push(parkingRef, newPark);
+      });
       parkingForm.reset();
       alert('Xe vào thành công!');
     };
@@ -325,18 +366,16 @@
     checkOutBtn.onclick = e => {
       e.preventDefault();
       const plate = document.getElementById('plate').value.trim().toUpperCase();
-      if (!plate) return alert('Nhập biển số để ra!');
+      if (!plate) return alert('Nhập biển số để tính phí ra!');
 
-      // Tìm xe theo biển số
       onValue(parkingRef, snap => {
-        const data = snap.val();
+        const data = snap.val() || {};
         let foundId = null;
-        Object.entries(data || {}).forEach(([id, p]) => {
+        Object.entries(data).forEach(([id, p]) => {
           if (p.plate === plate && !p.outTime) foundId = id;
         });
-
-        if (foundId) checkOut(foundId);
-        else alert('Không tìm thấy xe!');
+        if (foundId) window.checkOut(foundId);
+        else alert('Không tìm thấy xe đang trông với biển số này!');
       }, { onlyOnce: true });
     };
 
@@ -346,20 +385,19 @@
         const p = snap.val();
         if (!p || p.outTime) return;
 
-        const duration = (outTime - p.inTime) / (1000 * 3600); // Giờ
-        const fee = Math.ceil(duration) * parkingFeePerHour;
+        const durationHours = (outTime - p.inTime) / (1000 * 3600);
+        const fee = Math.ceil(durationHours) * parkingFeePerHour;
 
         update(ref(db, `internetshop/parking/${id}`), { outTime });
 
-        // Thêm vào giao dịch
         push(transRef, {
-          description: `Trông xe ${p.plate} (${Math.ceil(duration)} giờ)`,
+          description: `Trông xe ${p.plate} (${Math.ceil(durationHours)} giờ)`,
           amount: fee,
           type: 'parking',
           date: new Date().toISOString().split('T')[0]
         });
 
-        alert(`Phí trông xe: ${fee.toLocaleString('vi-VN')} ₫`);
+        alert(`Xe ra - Phí trông: ${fee.toLocaleString('vi-VN')} ₫`);
       }, { onlyOnce: true });
     };
   </script>
