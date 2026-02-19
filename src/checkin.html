@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="vi" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Quản lý Check-in Nhà Đội</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: { extend: { colors: { primary: '#3b82f6' } } }
+    }
+  </script>
+  <!-- Firebase SDK -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+    import { getDatabase, ref, onValue, set, update, remove, push } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+
+    window.firebaseApp = initializeApp({
+      databaseURL: "https://supperdatabase-default-rtdb.firebaseio.com/"
+    });
+    window.db = getDatabase(window.firebaseApp);
+  </script>
+</head>
+<body class="bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 min-h-screen transition-colors">
+
+  <header class="bg-white dark:bg-gray-800 shadow sticky top-0 z-10">
+    <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+      <h1 class="text-2xl font-bold text-primary">Quản lý Check-in Nhà Đội</h1>
+      <button id="themeToggle" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">🌙</button>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Summary Cards -->
+    <div class="lg:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow p-6 text-center">
+        <p class="text-sm text-gray-500 dark:text-gray-400">Đang có mặt</p>
+        <p id="presentCount" class="text-4xl font-bold text-green-600">0</p>
+      </div>
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow p-6 text-center">
+        <p class="text-sm text-gray-500 dark:text-gray-400">Check-in hôm nay</p>
+        <p id="todayCount" class="text-4xl font-bold text-blue-600">0</p>
+      </div>
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow p-6 text-center">
+        <p class="text-sm text-gray-500 dark:text-gray-400">Tổng lượt</p>
+        <p id="totalCount" class="text-4xl font-bold">0</p>
+      </div>
+    </div>
+
+    <!-- Chart & Form -->
+    <div class="lg:col-span-2 space-y-6">
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow p-6">
+        <h2 class="text-lg font-semibold mb-4">Biểu đồ lượt check-in (7 ngày gần nhất)</h2>
+        <canvas id="checkinChart" height="180"></canvas>
+      </div>
+
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow p-6">
+        <h2 class="text-lg font-semibold mb-4">Check-in / Check-out</h2>
+        <form id="checkinForm" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm mb-1">Tên cầu thủ / thành viên</label>
+            <input type="text" id="name" required class="w-full px-4 py-2 border rounded dark:bg-gray-700 dark:border-gray-600" placeholder="VD: Nguyễn Văn A" />
+          </div>
+          <div>
+            <label class="block text-sm mb-1">Số áo / Mã thành viên</label>
+            <input type="text" id="code" placeholder="VD: #7" class="w-full px-4 py-2 border rounded dark:bg-gray-700 dark:border-gray-600" />
+          </div>
+          <div class="md:col-span-2">
+            <label class="block text-sm mb-1">Ghi chú (tùy chọn)</label>
+            <input type="text" id="note" class="w-full px-4 py-2 border rounded dark:bg-gray-700 dark:border-gray-600" placeholder="VD: Đến muộn vì kẹt xe" />
+          </div>
+          <div class="md:col-span-2 flex justify-end gap-3">
+            <button type="button" id="cancelEdit" class="hidden px-5 py-2 border rounded hover:bg-gray-100 dark:hover:bg-gray-700">Hủy</button>
+            <button type="submit" class="bg-primary text-white px-6 py-2 rounded hover:bg-blue-700">Check-in</button>
+          </div>
+          <input type="hidden" id="editId" />
+        </form>
+      </div>
+    </div>
+
+    <!-- List -->
+    <div class="space-y-6">
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow p-5">
+        <h2 class="text-lg font-semibold mb-3">Danh sách check-in</h2>
+        <div id="checkinList" class="space-y-3 max-h-[500px] overflow-y-auto"></div>
+      </div>
+    </div>
+  </main>
+
+  <script type="module">
+    import { ref, onValue, set, update, remove, push } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+
+    const db = window.db;
+    const checkinsRef = ref(db, 'teamhouse/checkins');
+
+    const form = document.getElementById('checkinForm');
+    const editIdInput = document.getElementById('editId');
+    const cancelEdit = document.getElementById('cancelEdit');
+    const checkinList = document.getElementById('checkinList');
+
+    let chart;
+
+    // Theme
+    const themeToggle = document.getElementById('themeToggle');
+    if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      document.documentElement.classList.add('dark');
+      themeToggle.textContent = '☀️';
+    }
+    themeToggle.onclick = () => {
+      document.documentElement.classList.toggle('dark');
+      localStorage.theme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+      themeToggle.textContent = document.documentElement.classList.contains('dark') ? '☀️' : '🌙';
+    };
+
+    // Realtime
+    onValue(checkinsRef, snap => {
+      const data = snap.val() || {};
+      renderList(data);
+      updateSummary(data);
+      updateChart(data);
+    });
+
+    function renderList(data) {
+      checkinList.innerHTML = '';
+      const now = Date.now();
+      Object.entries(data).forEach(([id, item]) => {
+        const checkedIn = new Date(item.checkInTime);
+        const checkedOut = item.checkOutTime ? new Date(item.checkOutTime) : null;
+        const duration = checkedOut ? ((checkedOut - checkedIn) / 1000 / 60).toFixed(0) : 'Đang có mặt';
+        const status = checkedOut ? 'Đã ra' : 'Có mặt';
+        const statusClass = checkedOut ? 'text-gray-500' : 'text-green-600 font-bold';
+
+        const div = document.createElement('div');
+        div.className = `p-4 rounded-lg border ${checkedOut ? 'bg-gray-50 dark:bg-gray-700/30' : 'bg-green-50 dark:bg-green-900/30 border-green-200 dark:border-green-700'} flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3`;
+        div.innerHTML = `
+          <div>
+            <p class="font-bold text-lg">${item.name} ${item.code ? `(${item.code})` : ''}</p>
+            <p class="text-sm text-gray-600 dark:text-gray-400">Check-in: ${checkedIn.toLocaleString('vi-VN')}</p>
+            ${checkedOut ? `<p class="text-sm text-gray-600 dark:text-gray-400">Check-out: ${checkedOut.toLocaleString('vi-VN')}</p>` : ''}
+            <p class="text-sm">Thời gian: ${duration} phút ${checkedOut ? '' : '(đang tính)'}</p>
+            ${item.note ? `<p class="text-sm italic text-gray-500">Ghi chú: ${item.note}</p>` : ''}
+          </div>
+          <div class="text-right flex flex-col items-end gap-2">
+            <span class="${statusClass}">${status}</span>
+            <div>
+              ${!checkedOut ? `<button onclick="checkout('${id}')" class="text-red-600 hover:underline text-sm mr-3">Check-out</button>` : ''}
+              <button onclick="editItem('${id}')" class="text-blue-600 hover:underline text-sm mr-3">Sửa</button>
+              <button onclick="deleteItem('${id}')" class="text-red-600 hover:underline text-sm">Xóa</button>
+            </div>
+          </div>
+        `;
+        checkinList.appendChild(div);
+      });
+      if (Object.keys(data).length === 0) {
+        checkinList.innerHTML = '<p class="text-center text-gray-500 py-10">Chưa có ai check-in hôm nay</p>';
+      }
+    }
+
+    function updateSummary(data) {
+      let present = 0, today = 0, total = Object.keys(data).length;
+      const todayStart = new Date().setHours(0,0,0,0);
+
+      Object.values(data).forEach(item => {
+        if (!item.checkOutTime) present++;
+        if (new Date(item.checkInTime).getTime() >= todayStart) today++;
+      });
+
+      document.getElementById('presentCount').textContent = present;
+      document.getElementById('todayCount').textContent = today;
+      document.getElementById('totalCount').textContent = total;
+    }
+
+    function updateChart(data) {
+      const ctx = document.getElementById('checkinChart').getContext('2d');
+      const dates = {};
+      const today = new Date();
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date(today);
+        d.setDate(today.getDate() - i);
+        const key = d.toISOString().split('T')[0];
+        dates[key] = 0;
+      }
+
+      Object.values(data).forEach(item => {
+        const day = new Date(item.checkInTime).toISOString().split('T')[0];
+        if (dates[day] !== undefined) dates[day]++;
+      });
+
+      if (chart) chart.destroy();
+      chart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: Object.keys(dates).map(d => new Date(d).toLocaleDateString('vi-VN', {day:'numeric', month:'short'})),
+          datasets: [{
+            label: 'Lượt check-in',
+            data: Object.values(dates),
+            backgroundColor: '#3b82f6',
+            borderRadius: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: { y: { beginAtZero: true } }
+        }
+      });
+    }
+
+    // Form
+    form.onsubmit = e => {
+      e.preventDefault();
+      const id = editIdInput.value;
+      const newItem = {
+        name: document.getElementById('name').value.trim(),
+        code: document.getElementById('code').value.trim(),
+        note: document.getElementById('note').value.trim(),
+        checkInTime: Date.now(),
+        checkOutTime: null
+      };
+
+      if (!newItem.name) return alert('Vui lòng nhập tên!');
+
+      if (id) {
+        update(ref(db, `teamhouse/checkins/${id}`), newItem);
+      } else {
+        push(ref(db, 'teamhouse/checkins'), newItem);
+      }
+
+      form.reset();
+      editIdInput.value = '';
+      cancelEdit.classList.add('hidden');
+      alert(id ? 'Cập nhật thành công!' : 'Check-in thành công!');
+    };
+
+    cancelEdit.onclick = () => {
+      form.reset();
+      editIdInput.value = '';
+      cancelEdit.classList.add('hidden');
+    };
+
+    window.editItem = id => {
+      onValue(ref(db, `teamhouse/checkins/${id}`), snap => {
+        const item = snap.val();
+        if (!item) return;
+        document.getElementById('name').value = item.name;
+        document.getElementById('code').value = item.code || '';
+        document.getElementById('note').value = item.note || '';
+        editIdInput.value = id;
+        cancelEdit.classList.remove('hidden');
+      }, { onlyOnce: true });
+    };
+
+    window.checkout = id => {
+      if (!confirm('Check-out cho thành viên này?')) return;
+      update(ref(db, `teamhouse/checkins/${id}`), { checkOutTime: Date.now() });
+    };
+
+    window.deleteItem = id => {
+      if (!confirm('Xóa bản ghi này?')) return;
+      remove(ref(db, `teamhouse/checkins/${id}`));
+    };
+  </script>
+</body>
+</html>
