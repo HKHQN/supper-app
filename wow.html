@@ -1,0 +1,1081 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MyLove ♡</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Tenor+Sans&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cream: #fdf6ef;
+    --rose: #c8646e;
+    --blush: #e8a0a8;
+    --deep: #1a0a0d;
+    --gold: #c9a96e;
+    --soft: #f5e8e0;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--cream);
+    color: var(--deep);
+    font-family: 'Cormorant Garamond', serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+    cursor: none;
+  }
+
+  /* Custom cursor */
+  .cursor {
+    width: 12px; height: 12px;
+    background: var(--rose);
+    border-radius: 50%;
+    position: fixed;
+    pointer-events: none;
+    z-index: 9999;
+    transform: translate(-50%, -50%);
+    transition: transform 0.1s, background 0.3s;
+    mix-blend-mode: multiply;
+  }
+  .cursor-ring {
+    width: 36px; height: 36px;
+    border: 1px solid var(--rose);
+    border-radius: 50%;
+    position: fixed;
+    pointer-events: none;
+    z-index: 9998;
+    transform: translate(-50%, -50%);
+    transition: all 0.15s ease;
+    opacity: 0.5;
+  }
+
+  /* Floating hearts bg */
+  .hearts-bg {
+    position: fixed; inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .heart-particle {
+    position: absolute;
+    font-size: 14px;
+    opacity: 0;
+    animation: floatUp var(--dur) ease-in infinite;
+    animation-delay: var(--delay);
+    left: var(--x);
+    color: var(--blush);
+  }
+  @keyframes floatUp {
+    0% { opacity: 0; transform: translateY(100vh) scale(0.5) rotate(0deg); }
+    10% { opacity: 0.4; }
+    90% { opacity: 0.2; }
+    100% { opacity: 0; transform: translateY(-100px) scale(1) rotate(20deg); }
+  }
+
+  /* Layout */
+  .app {
+    position: relative;
+    z-index: 1;
+    max-width: 420px;
+    margin: 0 auto;
+    min-height: 100vh;
+  }
+
+  /* Header */
+  header {
+    padding: 48px 32px 24px;
+    text-align: center;
+    position: relative;
+  }
+  .logo {
+    font-size: 13px;
+    letter-spacing: 0.35em;
+    text-transform: uppercase;
+    color: var(--rose);
+    font-family: 'Tenor Sans', sans-serif;
+    opacity: 0;
+    animation: fadeIn 1s ease forwards 0.3s;
+  }
+  .tagline {
+    font-size: 36px;
+    font-weight: 300;
+    font-style: italic;
+    color: var(--deep);
+    margin-top: 8px;
+    opacity: 0;
+    animation: fadeSlideUp 1s ease forwards 0.5s;
+    line-height: 1.2;
+  }
+  .tagline span { color: var(--rose); }
+
+  /* Nav */
+  nav {
+    display: flex;
+    justify-content: center;
+    gap: 0;
+    padding: 0 24px;
+    margin-bottom: 32px;
+    border-bottom: 1px solid #e8d8d0;
+    opacity: 0;
+    animation: fadeIn 1s ease forwards 0.8s;
+  }
+  nav button {
+    font-family: 'Tenor Sans', sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    background: none;
+    border: none;
+    padding: 14px 20px;
+    color: #aaa;
+    cursor: none;
+    transition: color 0.3s;
+    position: relative;
+  }
+  nav button::after {
+    content: '';
+    position: absolute;
+    bottom: -1px; left: 20%; right: 20%;
+    height: 2px;
+    background: var(--rose);
+    transform: scaleX(0);
+    transition: transform 0.3s;
+  }
+  nav button.active { color: var(--rose); }
+  nav button.active::after { transform: scaleX(1); }
+  nav button:hover { color: var(--rose); }
+
+  /* Pages */
+  .page { display: none; padding: 0 24px 80px; }
+  .page.active {
+    display: block;
+    animation: fadeSlideUp 0.5s ease;
+  }
+
+  /* ===== HOME PAGE ===== */
+  .couple-card {
+    background: white;
+    border-radius: 24px;
+    padding: 32px 28px;
+    box-shadow: 0 8px 40px rgba(200,100,110,0.1);
+    text-align: center;
+    margin-bottom: 24px;
+    border: 1px solid #f0e0e4;
+  }
+  .avatars {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  .avatar {
+    width: 80px; height: 80px;
+    border-radius: 50%;
+    border: 3px solid var(--blush);
+    overflow: hidden;
+    position: relative;
+    background: var(--soft);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 32px;
+  }
+  .heart-mid {
+    font-size: 24px;
+    color: var(--rose);
+    animation: heartbeat 1.5s ease infinite;
+  }
+  @keyframes heartbeat {
+    0%,100% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+  }
+  .couple-names {
+    font-size: 22px;
+    font-weight: 300;
+    font-style: italic;
+    letter-spacing: 0.05em;
+  }
+  .couple-names span { color: var(--rose); }
+  .together-since {
+    font-family: 'Tenor Sans', sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    color: #aaa;
+    margin-top: 6px;
+    text-transform: uppercase;
+  }
+
+  .timer-section {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-top: 24px;
+  }
+  .timer-unit {
+    background: var(--soft);
+    border-radius: 14px;
+    padding: 14px 8px;
+    text-align: center;
+  }
+  .timer-num {
+    font-size: 28px;
+    font-weight: 300;
+    color: var(--rose);
+    display: block;
+    line-height: 1;
+  }
+  .timer-label {
+    font-family: 'Tenor Sans', sans-serif;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: #bbb;
+    margin-top: 4px;
+  }
+
+  /* Quote */
+  .daily-quote {
+    background: linear-gradient(135deg, var(--rose) 0%, #a04050 100%);
+    border-radius: 20px;
+    padding: 28px;
+    color: white;
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 24px;
+  }
+  .daily-quote::before {
+    content: '"';
+    position: absolute;
+    top: -10px; left: 16px;
+    font-size: 120px;
+    font-family: 'Cormorant Garamond', serif;
+    opacity: 0.15;
+    line-height: 1;
+  }
+  .quote-text {
+    font-size: 18px;
+    font-style: italic;
+    font-weight: 300;
+    line-height: 1.6;
+    position: relative;
+  }
+  .quote-author {
+    font-family: 'Tenor Sans', sans-serif;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    margin-top: 12px;
+    opacity: 0.7;
+    text-transform: uppercase;
+  }
+  .refresh-quote {
+    position: absolute;
+    top: 16px; right: 16px;
+    background: rgba(255,255,255,0.2);
+    border: none;
+    border-radius: 50%;
+    width: 32px; height: 32px;
+    color: white;
+    cursor: none;
+    font-size: 16px;
+    display: flex; align-items: center; justify-content: center;
+    transition: transform 0.3s, background 0.3s;
+  }
+  .refresh-quote:hover { background: rgba(255,255,255,0.35); transform: rotate(180deg); }
+
+  /* Next event */
+  .next-event {
+    background: white;
+    border-radius: 20px;
+    padding: 20px 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+    border: 1px solid #f0e0e4;
+  }
+  .event-icon {
+    width: 50px; height: 50px;
+    background: var(--soft);
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+    flex-shrink: 0;
+  }
+  .event-info { flex: 1; }
+  .event-label {
+    font-family: 'Tenor Sans', sans-serif;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--rose);
+  }
+  .event-name { font-size: 17px; font-weight: 400; margin-top: 2px; }
+  .event-days {
+    font-family: 'Tenor Sans', sans-serif;
+    font-size: 11px;
+    color: #bbb;
+    margin-top: 2px;
+  }
+
+  /* ===== MEMORIES PAGE ===== */
+  .section-title {
+    font-size: 28px;
+    font-weight: 300;
+    font-style: italic;
+    margin-bottom: 20px;
+    color: var(--deep);
+  }
+  .section-title span { color: var(--rose); }
+
+  .memory-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+  .memory-card {
+    border-radius: 18px;
+    overflow: hidden;
+    position: relative;
+    aspect-ratio: 1;
+    cursor: none;
+    transition: transform 0.3s;
+  }
+  .memory-card:first-child {
+    grid-column: span 2;
+    aspect-ratio: 2/1;
+  }
+  .memory-card:hover { transform: scale(1.02); }
+  .memory-img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 40px;
+  }
+  .memory-bg {
+    width: 100%; height: 100%;
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .memory-overlay {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    background: linear-gradient(transparent, rgba(20,5,8,0.75));
+    padding: 20px 14px 14px;
+    color: white;
+  }
+  .memory-date {
+    font-family: 'Tenor Sans', sans-serif;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    opacity: 0.7;
+    text-transform: uppercase;
+  }
+  .memory-title { font-size: 15px; font-weight: 300; margin-top: 2px; }
+
+  .add-memory-btn {
+    width: 100%;
+    background: none;
+    border: 1.5px dashed var(--blush);
+    border-radius: 18px;
+    padding: 24px;
+    color: var(--rose);
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 15px;
+    font-style: italic;
+    cursor: none;
+    transition: all 0.3s;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+  }
+  .add-memory-btn:hover {
+    background: var(--soft);
+    border-color: var(--rose);
+  }
+
+  /* ===== MESSAGES PAGE ===== */
+  .messages-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 20px;
+    max-height: 400px;
+    overflow-y: auto;
+    padding-right: 4px;
+  }
+  .messages-container::-webkit-scrollbar { width: 3px; }
+  .messages-container::-webkit-scrollbar-track { background: transparent; }
+  .messages-container::-webkit-scrollbar-thumb { background: var(--blush); border-radius: 10px; }
+
+  .msg {
+    max-width: 80%;
+    padding: 12px 18px;
+    border-radius: 20px;
+    font-size: 15px;
+    line-height: 1.5;
+    position: relative;
+    animation: msgPop 0.3s ease;
+  }
+  @keyframes msgPop {
+    from { opacity: 0; transform: scale(0.9) translateY(10px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+  }
+  .msg.received {
+    background: white;
+    border: 1px solid #f0e0e4;
+    border-bottom-left-radius: 6px;
+    align-self: flex-start;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+  }
+  .msg.sent {
+    background: linear-gradient(135deg, var(--rose), #b05060);
+    color: white;
+    border-bottom-right-radius: 6px;
+    align-self: flex-end;
+  }
+  .msg-time {
+    font-family: 'Tenor Sans', sans-serif;
+    font-size: 9px;
+    opacity: 0.5;
+    margin-top: 4px;
+    letter-spacing: 0.1em;
+  }
+  .msg-name {
+    font-family: 'Tenor Sans', sans-serif;
+    font-size: 10px;
+    color: var(--rose);
+    letter-spacing: 0.1em;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+  }
+
+  .message-input-area {
+    background: white;
+    border-radius: 20px;
+    padding: 6px 6px 6px 18px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    border: 1px solid #f0e0e4;
+    position: sticky;
+    bottom: 80px;
+  }
+  .message-input {
+    flex: 1;
+    border: none;
+    outline: none;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 15px;
+    color: var(--deep);
+    background: transparent;
+    padding: 10px 0;
+  }
+  .message-input::placeholder { color: #ccc; font-style: italic; }
+  .send-btn {
+    width: 42px; height: 42px;
+    background: var(--rose);
+    border: none;
+    border-radius: 14px;
+    color: white;
+    font-size: 18px;
+    cursor: none;
+    display: flex; align-items: center; justify-content: center;
+    transition: transform 0.2s, background 0.2s;
+    flex-shrink: 0;
+  }
+  .send-btn:hover { background: #b05060; transform: scale(1.05); }
+
+  /* ===== WISHLIST PAGE ===== */
+  .wish-item {
+    background: white;
+    border-radius: 16px;
+    padding: 18px 20px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    box-shadow: 0 2px 15px rgba(0,0,0,0.04);
+    border: 1px solid #f0e0e4;
+    transition: transform 0.2s;
+    cursor: none;
+  }
+  .wish-item:hover { transform: translateX(4px); }
+  .wish-item.done { opacity: 0.5; }
+  .wish-check {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    border: 2px solid var(--blush);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.3s;
+    cursor: none;
+    font-size: 14px;
+  }
+  .wish-item.done .wish-check {
+    background: var(--rose);
+    border-color: var(--rose);
+    color: white;
+  }
+  .wish-content { flex: 1; }
+  .wish-name { font-size: 16px; font-weight: 300; }
+  .wish-item.done .wish-name { text-decoration: line-through; }
+  .wish-tag {
+    display: inline-block;
+    font-family: 'Tenor Sans', sans-serif;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--rose);
+    background: var(--soft);
+    padding: 3px 10px;
+    border-radius: 100px;
+    margin-top: 4px;
+  }
+  .wish-emoji { font-size: 22px; }
+
+  .add-wish-row {
+    display: flex; gap: 10px; margin-top: 16px;
+  }
+  .wish-input {
+    flex: 1;
+    border: 1.5px solid #f0e0e4;
+    border-radius: 14px;
+    padding: 12px 16px;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 15px;
+    outline: none;
+    transition: border 0.3s;
+    background: white;
+  }
+  .wish-input:focus { border-color: var(--blush); }
+  .wish-input::placeholder { color: #ccc; font-style: italic; }
+  .add-btn {
+    background: var(--rose);
+    border: none;
+    border-radius: 14px;
+    padding: 12px 20px;
+    color: white;
+    font-family: 'Tenor Sans', sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    cursor: none;
+    transition: all 0.3s;
+  }
+  .add-btn:hover { background: #b05060; }
+
+  /* Bottom nav */
+  .bottom-nav {
+    position: fixed;
+    bottom: 0; left: 50%; transform: translateX(-50%);
+    width: 420px;
+    background: rgba(253,246,239,0.9);
+    backdrop-filter: blur(20px);
+    border-top: 1px solid #f0e0e4;
+    display: flex;
+    z-index: 100;
+  }
+  .nav-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 12px 8px;
+    cursor: none;
+    transition: color 0.3s;
+    color: #ccc;
+    border: none;
+    background: none;
+    font-family: 'Tenor Sans', sans-serif;
+  }
+  .nav-item .icon { font-size: 22px; transition: transform 0.3s; }
+  .nav-item .label {
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
+  .nav-item.active { color: var(--rose); }
+  .nav-item.active .icon { transform: scale(1.2); }
+  .nav-item:hover { color: var(--rose); }
+
+  /* Animations */
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes fadeSlideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Scroll bar global */
+  html { scroll-behavior: smooth; }
+
+  /* Modal */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(26,10,13,0.5);
+    backdrop-filter: blur(8px);
+    z-index: 1000;
+    display: none;
+    align-items: flex-end;
+  }
+  .modal-overlay.open { display: flex; animation: fadeIn 0.3s ease; }
+  .modal {
+    background: var(--cream);
+    border-radius: 28px 28px 0 0;
+    padding: 32px 28px 48px;
+    width: 100%;
+    max-width: 420px;
+    margin: 0 auto;
+    animation: slideUp 0.4s ease;
+  }
+  @keyframes slideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+  .modal-handle {
+    width: 40px; height: 4px;
+    background: #ddd;
+    border-radius: 100px;
+    margin: 0 auto 24px;
+  }
+  .modal h3 {
+    font-size: 22px;
+    font-style: italic;
+    font-weight: 300;
+    margin-bottom: 20px;
+    color: var(--deep);
+  }
+  .modal-close {
+    position: absolute;
+    top: 20px; right: 20px;
+    background: var(--soft);
+    border: none;
+    border-radius: 50%;
+    width: 36px; height: 36px;
+    cursor: none;
+    font-size: 18px;
+    display: flex; align-items: center; justify-content: center;
+    color: #aaa;
+    transition: all 0.2s;
+  }
+  .modal-close:hover { background: #f0e0e4; color: var(--rose); }
+  .modal { position: relative; }
+</style>
+</head>
+<body>
+
+<!-- Custom cursor -->
+<div class="cursor" id="cursor"></div>
+<div class="cursor-ring" id="cursorRing"></div>
+
+<!-- Floating hearts -->
+<div class="hearts-bg" id="heartsBg"></div>
+
+<div class="app">
+  <header>
+    <div class="logo">MyLove</div>
+    <div class="tagline">Tình yêu của <span>chúng ta</span></div>
+  </header>
+
+  <nav>
+    <button class="active" onclick="switchPage('home',this)">Trang chủ</button>
+    <button onclick="switchPage('memories',this)">Kỷ niệm</button>
+    <button onclick="switchPage('messages',this)">Nhắn tin</button>
+    <button onclick="switchPage('wishlist',this)">Ước mơ</button>
+  </nav>
+
+  <!-- HOME -->
+  <div class="page active" id="page-home">
+    <div class="couple-card">
+      <div class="avatars">
+        <div class="avatar" style="background:#ffe0e8;">🌸</div>
+        <div class="heart-mid">♥</div>
+        <div class="avatar" style="background:#e0f0ff;">🌊</div>
+      </div>
+      <div class="couple-names"><span>An</span> &amp; <span>Minh</span></div>
+      <div class="together-since">Bên nhau từ 14/02/2022</div>
+      <div class="timer-section" id="timer"></div>
+    </div>
+
+    <div class="daily-quote">
+      <button class="refresh-quote" onclick="refreshQuote()" title="Câu mới">↻</button>
+      <div class="quote-text" id="quoteText"></div>
+      <div class="quote-author" id="quoteAuthor"></div>
+    </div>
+
+    <div class="next-event">
+      <div class="event-icon" id="nextEventIcon">🎂</div>
+      <div class="event-info">
+        <div class="event-label">Sắp tới</div>
+        <div class="event-name" id="nextEventName">Sinh nhật của Minh</div>
+        <div class="event-days" id="nextEventDays">Còn 23 ngày nữa</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MEMORIES -->
+  <div class="page" id="page-memories">
+    <div class="section-title">Kỷ <span>niệm</span> đẹp</div>
+    <div class="memory-grid">
+      <div class="memory-card" onclick="openMemoryModal(0)">
+        <div class="memory-bg" style="background:linear-gradient(135deg,#f8d7da,#f5c6cb);">
+          <div style="font-size:60px">🌸</div>
+        </div>
+        <div class="memory-overlay">
+          <div class="memory-date">14 Feb 2022</div>
+          <div class="memory-title">Ngày đầu tiên bên nhau</div>
+        </div>
+      </div>
+      <div class="memory-card" onclick="openMemoryModal(1)">
+        <div class="memory-bg" style="background:linear-gradient(135deg,#d4edda,#c3e6cb);">
+          <div style="font-size:50px">🏕️</div>
+        </div>
+        <div class="memory-overlay">
+          <div class="memory-date">05 Aug 2022</div>
+          <div class="memory-title">Cắm trại cùng nhau</div>
+        </div>
+      </div>
+      <div class="memory-card" onclick="openMemoryModal(2)">
+        <div class="memory-bg" style="background:linear-gradient(135deg,#dbeafe,#bfdbfe);">
+          <div style="font-size:50px">🌊</div>
+        </div>
+        <div class="memory-overlay">
+          <div class="memory-date">20 Dec 2022</div>
+          <div class="memory-title">Chuyến biển Đà Nẵng</div>
+        </div>
+      </div>
+      <div class="memory-card" onclick="openMemoryModal(3)">
+        <div class="memory-bg" style="background:linear-gradient(135deg,#fef3c7,#fde68a);">
+          <div style="font-size:50px">🎆</div>
+        </div>
+        <div class="memory-overlay">
+          <div class="memory-date">01 Jan 2023</div>
+          <div class="memory-title">Đón năm mới cùng nhau</div>
+        </div>
+      </div>
+    </div>
+    <button class="add-memory-btn" onclick="openAddMemory()">
+      <span style="font-size:20px">✦</span>
+      Thêm kỷ niệm mới
+    </button>
+  </div>
+
+  <!-- MESSAGES -->
+  <div class="page" id="page-messages">
+    <div class="section-title">Lời <span>yêu thương</span></div>
+    <div class="messages-container" id="messagesContainer">
+      <div style="color:#bbb;font-size:13px;text-align:center;font-style:italic;padding:10px 0;">Hôm nay, 14:02</div>
+      <div class="msg received">
+        <div class="msg-name">An 🌸</div>
+        Em nhớ anh nhiều lắm ♡
+        <div class="msg-time">14:05</div>
+      </div>
+      <div class="msg sent">
+        Anh cũng vậy em yêu 💕
+        <div class="msg-time">14:07</div>
+      </div>
+      <div class="msg received">
+        <div class="msg-name">An 🌸</div>
+        Tối nay mình đi ăn nhé? Anh chọn chỗ đi~
+        <div class="msg-time">14:10</div>
+      </div>
+      <div class="msg sent">
+        Ok em! Anh biết chỗ hay lắm 🌹 7h nhé
+        <div class="msg-time">14:12</div>
+      </div>
+    </div>
+    <div class="message-input-area">
+      <input class="message-input" id="msgInput" placeholder="Viết điều gì đó ngọt ngào..." onkeydown="if(event.key==='Enter')sendMsg()">
+      <button class="send-btn" onclick="sendMsg()">♡</button>
+    </div>
+  </div>
+
+  <!-- WISHLIST -->
+  <div class="page" id="page-wishlist">
+    <div class="section-title">Ước <span>mơ</span> của chúng ta</div>
+    <div id="wishContainer">
+      <div class="wish-item" onclick="toggleWish(this)">
+        <div class="wish-emoji">✈️</div>
+        <div class="wish-content">
+          <div class="wish-name">Du lịch Nhật Bản</div>
+          <span class="wish-tag">Du lịch</span>
+        </div>
+        <div class="wish-check">✓</div>
+      </div>
+      <div class="wish-item done" onclick="toggleWish(this)">
+        <div class="wish-emoji">🎡</div>
+        <div class="wish-content">
+          <div class="wish-name">Đi công viên giải trí cùng nhau</div>
+          <span class="wish-tag">Vui chơi</span>
+        </div>
+        <div class="wish-check" style="background:var(--rose);border-color:var(--rose);color:white;">✓</div>
+      </div>
+      <div class="wish-item" onclick="toggleWish(this)">
+        <div class="wish-emoji">🏡</div>
+        <div class="wish-content">
+          <div class="wish-name">Có một ngôi nhà nhỏ xinh</div>
+          <span class="wish-tag">Tương lai</span>
+        </div>
+        <div class="wish-check">✓</div>
+      </div>
+      <div class="wish-item" onclick="toggleWish(this)">
+        <div class="wish-emoji">🌌</div>
+        <div class="wish-content">
+          <div class="wish-name">Ngắm sao băng cùng nhau</div>
+          <span class="wish-tag">Lãng mạn</span>
+        </div>
+        <div class="wish-check">✓</div>
+      </div>
+      <div class="wish-item done" onclick="toggleWish(this)">
+        <div class="wish-emoji">🍳</div>
+        <div class="wish-content">
+          <div class="wish-name">Nấu bữa ăn đặc biệt cho nhau</div>
+          <span class="wish-tag">Cuộc sống</span>
+        </div>
+        <div class="wish-check" style="background:var(--rose);border-color:var(--rose);color:white;">✓</div>
+      </div>
+    </div>
+    <div class="add-wish-row">
+      <input class="wish-input" id="wishInput" placeholder="Thêm ước mơ mới..." onkeydown="if(event.key==='Enter')addWish()">
+      <button class="add-btn" onclick="addWish()">Thêm</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- Bottom nav -->
+<div class="bottom-nav">
+  <button class="nav-item active" id="nav-home" onclick="switchPage('home',null,'nav-home')">
+    <span class="icon">🏠</span>
+    <span class="label">Trang chủ</span>
+  </button>
+  <button class="nav-item" id="nav-memories" onclick="switchPage('memories',null,'nav-memories')">
+    <span class="icon">📸</span>
+    <span class="label">Kỷ niệm</span>
+  </button>
+  <button class="nav-item" id="nav-messages" onclick="switchPage('messages',null,'nav-messages')">
+    <span class="icon">💌</span>
+    <span class="label">Nhắn tin</span>
+  </button>
+  <button class="nav-item" id="nav-wishlist" onclick="switchPage('wishlist',null,'nav-wishlist')">
+    <span class="icon">✨</span>
+    <span class="label">Ước mơ</span>
+  </button>
+</div>
+
+<!-- Memory Modal -->
+<div class="modal-overlay" id="memoryModal" onclick="closeModal('memoryModal')">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-handle"></div>
+    <button class="modal-close" onclick="closeModal('memoryModal')">✕</button>
+    <h3 id="modalTitle">Ngày đầu tiên bên nhau</h3>
+    <div style="font-size:60px;text-align:center;margin:16px 0;" id="modalEmoji">🌸</div>
+    <p style="font-size:15px;color:#888;font-style:italic;line-height:1.7;text-align:center;" id="modalDesc">Ngày hôm đó thật đặc biệt. Mọi thứ dường như hoàn hảo khi chúng ta bên nhau lần đầu tiên. Một kỷ niệm mà cả hai sẽ mãi không quên.</p>
+    <div style="text-align:center;margin-top:20px;font-family:'Tenor Sans',sans-serif;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:var(--rose);" id="modalDate">14 Feb 2022</div>
+  </div>
+</div>
+
+<script>
+// Cursor
+const cursor = document.getElementById('cursor');
+const ring = document.getElementById('cursorRing');
+document.addEventListener('mousemove', e => {
+  cursor.style.left = e.clientX + 'px';
+  cursor.style.top = e.clientY + 'px';
+  setTimeout(() => {
+    ring.style.left = e.clientX + 'px';
+    ring.style.top = e.clientY + 'px';
+  }, 60);
+});
+document.addEventListener('mousedown', () => {
+  cursor.style.transform = 'translate(-50%,-50%) scale(1.8)';
+  ring.style.transform = 'translate(-50%,-50%) scale(0.8)';
+});
+document.addEventListener('mouseup', () => {
+  cursor.style.transform = 'translate(-50%,-50%) scale(1)';
+  ring.style.transform = 'translate(-50%,-50%) scale(1)';
+});
+
+// Floating hearts
+const heartsBg = document.getElementById('heartsBg');
+const heartChars = ['♡', '♥', '❤', '✿', '✦'];
+for (let i = 0; i < 15; i++) {
+  const h = document.createElement('div');
+  h.className = 'heart-particle';
+  h.textContent = heartChars[Math.floor(Math.random() * heartChars.length)];
+  h.style.setProperty('--dur', (8 + Math.random() * 12) + 's');
+  h.style.setProperty('--delay', (Math.random() * 10) + 's');
+  h.style.setProperty('--x', (Math.random() * 100) + '%');
+  h.style.fontSize = (10 + Math.random() * 12) + 'px';
+  heartsBg.appendChild(h);
+}
+
+// Timer
+const startDate = new Date('2022-02-14');
+function updateTimer() {
+  const now = new Date();
+  const diff = now - startDate;
+  const days = Math.floor(diff / 86400000);
+  const hours = Math.floor((diff % 86400000) / 3600000);
+  const mins = Math.floor((diff % 3600000) / 60000);
+  const secs = Math.floor((diff % 60000) / 1000);
+  const years = Math.floor(days / 365);
+  const months = Math.floor((days % 365) / 30);
+  const rDays = days % 30;
+  const timerHTML = `
+    <div class="timer-unit"><span class="timer-num">${years}</span><div class="timer-label">Năm</div></div>
+    <div class="timer-unit"><span class="timer-num">${months}</span><div class="timer-label">Tháng</div></div>
+    <div class="timer-unit"><span class="timer-num">${rDays}</span><div class="timer-label">Ngày</div></div>
+    <div class="timer-unit"><span class="timer-num">${String(secs).padStart(2,'0')}</span><div class="timer-label">Giây</div></div>
+  `;
+  document.getElementById('timer').innerHTML = timerHTML;
+}
+setInterval(updateTimer, 1000);
+updateTimer();
+
+// Quotes
+const quotes = [
+  { text: "Yêu là khi hạnh phúc của người kia quan trọng hơn hạnh phúc của chính mình.", author: "H. Jackson Brown Jr." },
+  { text: "Trong vũ trụ bao la, anh chọn em. Mỗi ngày, mỗi giờ, mỗi phút.", author: "— Vô danh" },
+  { text: "Tình yêu không phải nhìn nhau, mà cùng nhìn về một hướng.", author: "Antoine de Saint-Exupéry" },
+  { text: "Em là nhà của anh, bất kể anh ở đâu.", author: "— Vô danh" },
+  { text: "Yêu ai đó là học thuộc bài hát trong tim họ và hát lại khi họ quên lời.", author: "— Vô danh" },
+  { text: "Mỗi buổi sáng thức dậy bên em là điều tuyệt vời nhất anh từng biết.", author: "— Vô danh" },
+];
+let qIdx = 0;
+function refreshQuote() {
+  qIdx = (qIdx + 1) % quotes.length;
+  document.getElementById('quoteText').textContent = quotes[qIdx].text;
+  document.getElementById('quoteAuthor').textContent = quotes[qIdx].author;
+}
+refreshQuote();
+
+// Page switch
+function switchPage(pageId, navBtn, navId) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + pageId).classList.add('active');
+  // Top nav
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  if (navBtn) navBtn.classList.add('active');
+  // sync bottom nav
+  const navMap = {home:'nav-home',memories:'nav-memories',messages:'nav-messages',wishlist:'nav-wishlist'};
+  const bottomEl = document.getElementById(navMap[pageId]);
+  if (bottomEl) bottomEl.classList.add('active');
+  // sync top nav
+  const topNavBtns = document.querySelectorAll('nav button');
+  const pageOrder = ['home','memories','messages','wishlist'];
+  const idx = pageOrder.indexOf(pageId);
+  if (topNavBtns[idx] && !navBtn) topNavBtns[idx].classList.add('active');
+}
+
+// Messages
+const messagesContainer = document.getElementById('messagesContainer');
+let isSent = true;
+function sendMsg() {
+  const input = document.getElementById('msgInput');
+  if (!input.value.trim()) return;
+  const msg = document.createElement('div');
+  msg.className = 'msg sent';
+  const now = new Date();
+  msg.innerHTML = input.value + `<div class="msg-time">${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}</div>`;
+  messagesContainer.appendChild(msg);
+  input.value = '';
+  messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+  // Auto reply after 1.5s
+  setTimeout(() => {
+    const reply = document.createElement('div');
+    reply.className = 'msg received';
+    const replies = ['Em yêu anh ♡', 'Anh thật tuyệt vời~', 'Hehe em cũng vậy 🌸', 'Ôi anh ngọt ngào thế!', '💕💕💕'];
+    const now2 = new Date();
+    reply.innerHTML = '<div class="msg-name">An 🌸</div>' + replies[Math.floor(Math.random()*replies.length)] + `<div class="msg-time">${String(now2.getHours()).padStart(2,'0')}:${String(now2.getMinutes()).padStart(2,'0')}</div>`;
+    messagesContainer.appendChild(reply);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+  }, 1500);
+}
+
+// Wishlist
+function toggleWish(el) {
+  el.classList.toggle('done');
+  const check = el.querySelector('.wish-check');
+  if (el.classList.contains('done')) {
+    check.style.background = 'var(--rose)';
+    check.style.borderColor = 'var(--rose)';
+    check.style.color = 'white';
+  } else {
+    check.style.background = '';
+    check.style.borderColor = '';
+    check.style.color = '';
+  }
+}
+const wishEmojis = ['🌟','🎯','💫','🎪','🌈','🎭','🌺','🎸','🏄','🌙'];
+function addWish() {
+  const input = document.getElementById('wishInput');
+  if (!input.value.trim()) return;
+  const item = document.createElement('div');
+  item.className = 'wish-item';
+  item.onclick = function() { toggleWish(this); };
+  item.innerHTML = `
+    <div class="wish-emoji">${wishEmojis[Math.floor(Math.random()*wishEmojis.length)]}</div>
+    <div class="wish-content">
+      <div class="wish-name">${input.value}</div>
+      <span class="wish-tag">Ước mơ mới</span>
+    </div>
+    <div class="wish-check">✓</div>
+  `;
+  document.getElementById('wishContainer').appendChild(item);
+  input.value = '';
+}
+
+// Memory modal
+const memories = [
+  { title: 'Ngày đầu tiên bên nhau', emoji: '🌸', date: '14 Feb 2022', desc: 'Ngày hôm đó thật đặc biệt. Mọi thứ dường như hoàn hảo khi chúng ta bên nhau lần đầu tiên. Một kỷ niệm mà cả hai sẽ mãi không quên.' },
+  { title: 'Cắm trại cùng nhau', emoji: '🏕️', date: '05 Aug 2022', desc: 'Tiếng lửa trại crackle, bầu trời đêm đầy sao, và bên cạnh là người mình yêu. Chúng ta đã nói chuyện mãi cho đến tận sáng.' },
+  { title: 'Chuyến biển Đà Nẵng', emoji: '🌊', date: '20 Dec 2022', desc: 'Sóng biển, cát trắng, và nụ cười của em. Chuyến đi biển đầu tiên cùng nhau thật tuyệt vời và đáng nhớ.' },
+  { title: 'Đón năm mới cùng nhau', emoji: '🎆', date: '01 Jan 2023', desc: 'Khoảnh khắc pháo hoa bùng nổ, chúng ta nắm tay nhau và ước nguyện cho một năm mới tràn đầy yêu thương.' },
+];
+function openMemoryModal(idx) {
+  const m = memories[idx];
+  document.getElementById('modalTitle').textContent = m.title;
+  document.getElementById('modalEmoji').textContent = m.emoji;
+  document.getElementById('modalDate').textContent = m.date;
+  document.getElementById('modalDesc').textContent = m.desc;
+  document.getElementById('memoryModal').classList.add('open');
+}
+function openAddMemory() {
+  alert('Tính năng thêm kỷ niệm đang được phát triển ♡');
+}
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+
+// Next event countdown
+const events = [
+  { name: "Sinh nhật của Minh", date: new Date(new Date().getFullYear(), 3, 15), icon: "🎂" },
+  { name: "Kỷ niệm ngày yêu", date: new Date(new Date().getFullYear(), 1, 14), icon: "💑" },
+  { name: "Valentine", date: new Date(new Date().getFullYear(), 1, 14), icon: "🌹" },
+];
+function updateNextEvent() {
+  const now = new Date();
+  let soonest = null, minDiff = Infinity;
+  for (const ev of events) {
+    let d = new Date(ev.date);
+    if (d < now) d.setFullYear(d.getFullYear() + 1);
+    const diff = Math.ceil((d - now) / 86400000);
+    if (diff < minDiff) { minDiff = diff; soonest = { ...ev, days: diff }; }
+  }
+  if (soonest) {
+    document.getElementById('nextEventIcon').textContent = soonest.icon;
+    document.getElementById('nextEventName').textContent = soonest.name;
+    document.getElementById('nextEventDays').textContent = soonest.days === 0 ? 'Hôm nay! 🎉' : `Còn ${soonest.days} ngày nữa`;
+  }
+}
+updateNextEvent();
+</script>
+</body>
+</html>
