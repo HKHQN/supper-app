@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản Lý Dữ Liệu Firebase Realtime Database</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f4; }
+        .container { max-width: 1200px; margin: auto; padding: 20px; background: white; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: #333; }
+        #dataDisplay { white-space: pre-wrap; font-family: monospace; background: #eee; padding: 10px; border: 1px solid #ddd; height: 400px; overflow: auto; }
+        #editor { width: 100%; height: 300px; font-family: monospace; padding: 10px; border: 1px solid #ccc; border-radius: 4px; }
+        input[type="text"], button { padding: 10px; margin: 10px 5px 10px 0; border-radius: 4px; border: 1px solid #ccc; }
+        button { background: #4CAF50; color: white; border: none; cursor: pointer; }
+        button:hover { background: #45a049; }
+        #downloadBtn { background: #2196F3; }
+        #downloadBtn:hover { background: #1e88e5; }
+        #loadBtn { background: #FF9800; }
+        #loadBtn:hover { background: #f57c00; }
+        #status { color: #f00; margin-top: 10px; font-weight: bold; }
+        .warning { color: #ff9800; font-weight: bold; margin-bottom: 20px; }
+        .input-group { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .input-group input { flex: 1; min-width: 300px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Quản Lý Dữ Liệu Firebase Realtime Database</h1>
+        <p class="warning">Cảnh báo: Chỉ sử dụng với database công khai (không yêu cầu auth). Thay đổi dữ liệu sẽ ảnh hưởng trực tiếp đến database thực tế. Hãy cẩn thận!</p>
+        
+        <div class="input-group">
+            <label for="dbUrl">Firebase Database URL:</label>
+            <input type="text" id="dbUrl" placeholder="Ví dụ: https://your-project-default-rtdb.asia-southeast1.firebasedatabase.app/" 
+                   value="https://iqvocucdenhat0-default-rtdb.asia-southeast1.firebasedatabase.app/">
+            <button id="loadBtn" onclick="initializeAndLoad()">Tải Dữ Liệu</button>
+        </div>
+        
+        <h2>Dữ Liệu Hiện Tại (JSON)</h2>
+        <div id="dataDisplay">Đang chờ tải dữ liệu...</div>
+        
+        <button onclick="loadData()">Tải Lại Dữ Liệu Mới Nhất</button>
+        <button id="downloadBtn" onclick="downloadData()" style="display:none;">Tải về TXT</button>
+        
+        <h2>Chỉnh Sửa Dữ Liệu (Paste JSON Mới Vào Đây)</h2>
+        <textarea id="editor" placeholder="Paste JSON data here để cập nhật toàn bộ database..."></textarea>
+        <button onclick="saveData()">Lưu Thay Đổi (set toàn bộ root)</button>
+        
+        <div id="status"></div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-database-compat.js"></script>
+    <script>
+        let app = null;
+        let database = null;
+        let rootRef = null;
+        let currentData = null;
+
+        function showStatus(message, color = '#f00') {
+            const statusEl = document.getElementById('status');
+            statusEl.textContent = message;
+            statusEl.style.color = color;
+        }
+
+        function initializeFirebase(dbUrl) {
+            if (!dbUrl || !dbUrl.includes('.firebasedatabase.app') && !dbUrl.includes('.firebaseio.com')) {
+                showStatus('URL không hợp lệ. Vui lòng nhập đúng định dạng Firebase Realtime Database URL.');
+                return false;
+            }
+
+            // Loại bỏ trailing slash nếu có và đảm bảo đúng format
+            dbUrl = dbUrl.trim().replace(/\/+$/, '');
+
+            const firebaseConfig = {
+                databaseURL: dbUrl
+            };
+
+            try {
+                // Nếu đã init trước đó, xóa app cũ
+                if (app) {
+                    app.delete();
+                }
+                app = firebase.initializeApp(firebaseConfig, 'custom-db-' + Date.now());
+                database = firebase.database(app);
+                rootRef = database.ref('/');
+                showStatus('Đã kết nối với database: ' + dbUrl, '#4CAF50');
+                return true;
+            } catch (error) {
+                showStatus('Lỗi khởi tạo Firebase: ' + error.message);
+                return false;
+            }
+        }
+
+        function loadData() {
+            if (!rootRef) {
+                showStatus('Vui lòng nhập URL và nhấn "Tải Dữ Liệu" trước!');
+                return;
+            }
+
+            rootRef.once('value')
+                .then(snapshot => {
+                    currentData = snapshot.val();
+                    const formatted = JSON.stringify(currentData, null, 2);
+                    document.getElementById('dataDisplay').textContent = formatted;
+                    document.getElementById('editor').value = formatted;
+                    showStatus('Dữ liệu đã tải thành công!', '#4CAF50');
+                    document.getElementById('downloadBtn').style.display = 'inline-block';
+                })
+                .catch(error => {
+                    showStatus('Lỗi khi tải dữ liệu: ' + error.message);
+                    document.getElementById('downloadBtn').style.display = 'none';
+                });
+        }
+
+        function initializeAndLoad() {
+            const dbUrl = document.getElementById('dbUrl').value.trim();
+            if (initializeFirebase(dbUrl)) {
+                loadData();
+            }
+        }
+
+        function downloadData() {
+            if (!currentData) {
+                alert('Chưa có dữ liệu để tải về!');
+                return;
+            }
+
+            const now = new Date();
+            const timestamp = now.getFullYear() +
+                String(now.getMonth() + 1).padStart(2, '0') +
+                String(now.getDate()).padStart(2, '0') + '-' +
+                String(now.getHours()).padStart(2, '0') +
+                String(now.getMinutes()).padStart(2, '0') +
+                String(now.getSeconds()).padStart(2, '0');
+
+            const content = JSON.stringify(currentData, null, 2);
+            const blob = new Blob([content], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `firebase-data-${timestamp}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            showStatus('Đã bắt đầu tải file TXT!', '#2196F3');
+        }
+
+        function saveData() {
+            if (!rootRef) {
+                showStatus('Chưa kết nối database!');
+                return;
+            }
+
+            const editorValue = document.getElementById('editor').value.trim();
+            if (!editorValue) {
+                showStatus('Vui lòng nhập dữ liệu JSON!');
+                return;
+            }
+
+            try {
+                const newData = JSON.parse(editorValue);
+                rootRef.set(newData)
+                    .then(() => {
+                        showStatus('Dữ liệu đã được lưu thành công!', '#4CAF50');
+                        loadData(); // Tải lại để kiểm tra
+                    })
+                    .catch(error => {
+                        showStatus('Lỗi khi lưu dữ liệu: ' + error.message);
+                    });
+            } catch (e) {
+                showStatus('JSON không hợp lệ: ' + e.message);
+            }
+        }
+
+        // Tự động load database mặc định khi mở trang
+        window.onload = initializeAndLoad;
+    </script>
+</body>
+</html>
