@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Ghi Chú Lấy Sữa</title>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
+  <style>
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: linear-gradient(to bottom, #e8f5e9, #c8e6c9);
+      margin: 0;
+      padding: 20px;
+      color: #1b5e20;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 12px;
+      padding: 25px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+    }
+    h1 {
+      text-align: center;
+      color: #2e7d32;
+      margin-bottom: 10px;
+    }
+    .form-group {
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: bold;
+      color: #1b5e20;
+    }
+    input[type="number"] {
+      width: 100%;
+      padding: 12px;
+      font-size: 18px;
+      border: 2px solid #81c784;
+      border-radius: 8px;
+      box-sizing: border-box;
+    }
+    button {
+      padding: 12px 24px;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+    .btn-primary {
+      background: #4caf50;
+      color: white;
+    }
+    .btn-primary:hover {
+      background: #388e3c;
+    }
+    .btn-danger {
+      background: #f44336;
+      color: white;
+    }
+    .btn-danger:hover {
+      background: #d32f2f;
+    }
+    .total {
+      font-size: 24px;
+      font-weight: bold;
+      text-align: center;
+      margin: 20px 0;
+      color: #2e7d32;
+    }
+    .list {
+      margin-top: 30px;
+    }
+    .item {
+      background: #f1f8e9;
+      padding: 15px;
+      margin-bottom: 12px;
+      border-radius: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-left: 5px solid #81c784;
+    }
+    .item-info {
+      flex: 1;
+    }
+    .empty {
+      text-align: center;
+      color: #757575;
+      font-style: italic;
+      padding: 40px 0;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>Ghi Chú Lấy Sữa</h1>
+
+  <div class="form-group">
+    <label for="quantity">Số hộp sữa lấy lần này</label>
+    <input type="number" id="quantity" min="1" placeholder="Nhập số hộp (ví dụ: 5)" required autofocus />
+  </div>
+
+  <button class="btn-primary" onclick="saveRecord()">Ghi lại ngay</button>
+
+  <div class="total" id="totalBox">Tổng số hộp đã lấy: 0</div>
+
+  <div class="list" id="milkList">
+    <div class="empty">Đang tải dữ liệu...</div>
+  </div>
+</div>
+
+<script>
+  // Cấu hình Firebase
+  const firebaseConfig = {
+    databaseURL: "https://project-doidoi-default-rtdb.asia-southeast1.firebasedatabase.app"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+  const milkRef = db.ref('milk_records');
+
+  const quantityInput = document.getElementById('quantity');
+  const milkList = document.getElementById('milkList');
+  const totalEl = document.getElementById('totalBox');
+
+  // Theo dõi dữ liệu realtime
+  milkRef.on('value', (snapshot) => {
+    milkList.innerHTML = '';
+    let total = 0;
+
+    if (!snapshot.exists()) {
+      milkList.innerHTML = '<div class="empty">Chưa có lần lấy sữa nào.</div>';
+      totalEl.textContent = 'Tổng số hộp đã lấy: 0';
+      return;
+    }
+
+    const records = [];
+    snapshot.forEach(child => {
+      const data = child.val();
+      data.id = child.key;
+      records.push(data);
+      total += parseInt(data.quantity) || 0;
+    });
+
+    // Sắp xếp mới nhất trước (dựa trên timestamp)
+    records.sort((a, b) => b.timestamp - a.timestamp);
+
+    records.forEach(rec => {
+      const date = new Date(rec.timestamp).toLocaleString('vi-VN', {
+        day: '2-digit', month: '2-digit', year: 'numeric',
+        hour: '2-digit', minute: '2-digit', second: '2-digit'
+      });
+
+      const item = document.createElement('div');
+      item.className = 'item';
+      item.innerHTML = `
+        <div class="item-info">
+          <strong>${rec.quantity} hộp</strong> — ${date}
+        </div>
+        <button class="btn-danger" onclick="deleteRecord('${rec.id}')">Xóa</button>
+      `;
+      milkList.appendChild(item);
+    });
+
+    totalEl.textContent = `Tổng số hộp đã lấy: ${total.toLocaleString('vi-VN')}`;
+  });
+
+  // Lưu bản ghi mới
+  window.saveRecord = () => {
+    const qty = parseInt(quantityInput.value);
+    if (!qty || qty < 1) {
+      alert('Vui lòng nhập số hộp hợp lệ!');
+      return;
+    }
+
+    milkRef.push({
+      quantity: qty,
+      timestamp: Date.now(),
+      // Nếu muốn lưu thêm: user, note,...
+    });
+
+    quantityInput.value = '';
+    quantityInput.focus();
+    alert('Đã ghi lại thành công!');
+  };
+
+  // Xóa bản ghi
+  window.deleteRecord = (id) => {
+    if (confirm('Bạn chắc chắn muốn xóa bản ghi này?')) {
+      milkRef.child(id).remove();
+    }
+  };
+</script>
+
+</body>
+</html>
