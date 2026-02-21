@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0a0a0f">
+<title>Multi-AI Hub</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0a0f;
+  --surface: #12121a;
+  --surface2: #1a1a26;
+  --border: #1e1e2e;
+  --text: #e8e8f0;
+  --muted: #5a5a7a;
+  --claude: #ff6b4a;
+  --claude-dim: rgba(255,107,74,0.15);
+  --gpt: #10b981;
+  --gpt-dim: rgba(16,185,129,0.15);
+  --gemini: #3b82f6;
+  --gemini-dim: rgba(59,130,246,0.15);
+  --mistral: #a855f7;
+  --mistral-dim: rgba(168,85,247,0.15);
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --header-h: 56px;
+  --radius: 14px;
+}
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html,body { height:100%; overflow:hidden; background:var(--bg); color:var(--text); font-family:'DM Mono',monospace; }
+body { display:flex; flex-direction:column; padding-top:var(--safe-top); }
+
+/* NOISE */
+body::before {
+  content:''; position:fixed; inset:0;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
+  pointer-events:none; z-index:400;
+}
+
+/* ── HEADER ── */
+.header {
+  height:var(--header-h); display:flex; align-items:center; justify-content:space-between;
+  padding:0 14px; background:rgba(10,10,15,0.97); backdrop-filter:blur(24px);
+  -webkit-backdrop-filter:blur(24px); border-bottom:1px solid var(--border);
+  position:relative; z-index:50; flex-shrink:0;
+}
+.header-left { display:flex; align-items:center; gap:10px; }
+.menu-btn {
+  width:38px; height:38px; background:var(--surface); border:1px solid var(--border);
+  border-radius:10px; display:flex; align-items:center; justify-content:center;
+  cursor:pointer; color:var(--muted); transition:all 0.2s;
+}
+.menu-btn:active { transform:scale(0.92); background:var(--surface2); }
+.logo {
+  font-family:'Syne',sans-serif; font-weight:800; font-size:17px;
+  letter-spacing:-0.5px; display:flex; align-items:center; gap:8px;
+}
+.logo-icon {
+  width:28px; height:28px;
+  background:linear-gradient(135deg,var(--claude),var(--gemini));
+  border-radius:7px; display:flex; align-items:center; justify-content:center; font-size:12px;
+}
+.header-right { display:flex; align-items:center; gap:8px; }
+.status-pill {
+  background:var(--surface2); border:1px solid var(--border); border-radius:8px;
+  padding:5px 10px; font-size:10px; color:var(--muted); letter-spacing:0.3px;
+}
+.status-pill b { color:var(--text); }
+.icon-btn {
+  width:38px; height:38px; background:var(--surface); border:1px solid var(--border);
+  border-radius:10px; display:flex; align-items:center; justify-content:center;
+  cursor:pointer; color:var(--muted); font-size:16px; transition:all 0.2s;
+}
+.icon-btn:active { transform:scale(0.92); }
+
+/* ── MAIN ── */
+.main { flex:1; display:flex; overflow:hidden; position:relative; }
+
+/* ── DRAWER ── */
+.drawer-overlay {
+  display:none; position:fixed; inset:0; background:rgba(0,0,0,0.65);
+  backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
+  z-index:200; opacity:0; transition:opacity 0.25s;
+}
+.drawer-overlay.open { display:block; opacity:1; }
+
+.sidebar {
+  position:fixed; top:0; left:0; bottom:0;
+  width:min(290px,85vw); background:var(--surface);
+  border-right:1px solid var(--border); z-index:210;
+  display:flex; flex-direction:column;
+  transform:translateX(-100%);
+  transition:transform 0.3s cubic-bezier(0.4,0,0.2,1);
+  padding-top:calc(var(--safe-top) + var(--header-h));
+  overflow-y:auto; -webkit-overflow-scrolling:touch;
+}
+.sidebar.open { transform:translateX(0); }
+
+@media (min-width:768px) {
+  .drawer-overlay { display:none !important; }
+  .sidebar { position:relative; top:auto; left:auto; bottom:auto; transform:none !important; width:240px; flex-shrink:0; padding-top:0; }
+  .menu-btn { display:none; }
+}
+
+.sidebar-section { padding:16px; border-bottom:1px solid var(--border); }
+.sidebar-title { font-size:9px; text-transform:uppercase; letter-spacing:1.5px; color:var(--muted); margin-bottom:12px; }
+
+.model-card {
+  display:flex; align-items:center; gap:10px; padding:11px 10px;
+  border-radius:10px; cursor:pointer; transition:background 0.15s; margin-bottom:4px;
+}
+.model-card:active { background:rgba(255,255,255,0.06); }
+@media (hover:hover) { .model-card:hover { background:rgba(255,255,255,0.04); } }
+.model-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+.model-info { flex:1; }
+.model-name { font-size:13px; font-weight:500; }
+.model-sub { font-size:10px; color:var(--muted); margin-top:1px; }
+
+.toggle {
+  width:40px; height:22px; background:var(--border); border-radius:11px;
+  position:relative; transition:background 0.3s; flex-shrink:0; cursor:pointer;
+}
+.toggle.on { background:currentColor; }
+.toggle::after {
+  content:''; position:absolute; width:16px; height:16px; background:white;
+  border-radius:50%; top:3px; left:3px;
+  transition:left 0.3s cubic-bezier(0.4,0,0.2,1);
+  box-shadow:0 1px 4px rgba(0,0,0,0.4);
+}
+.toggle.on::after { left:21px; }
+
+/* ── CHAT AREA ── */
+.chat-area { flex:1; display:flex; flex-direction:column; overflow:hidden; min-width:0; }
+
+/* View tabs - horizontal scroll */
+.tabs-bar {
+  padding:10px 12px 0; overflow-x:auto; -webkit-overflow-scrolling:touch;
+  scrollbar-width:none; flex-shrink:0; border-bottom:1px solid var(--border);
+  background:var(--bg);
+}
+.tabs-bar::-webkit-scrollbar { display:none; }
+.tabs-inner { display:flex; gap:4px; width:max-content; padding-bottom:10px; }
+
+.ai-tab {
+  padding:7px 16px; border-radius:8px; font-family:'DM Mono',monospace;
+  font-size:11px; font-weight:500; cursor:pointer; border:1px solid var(--border);
+  background:transparent; color:var(--muted); transition:all 0.2s;
+  letter-spacing:0.4px; text-transform:uppercase; white-space:nowrap;
+}
+.ai-tab:active { transform:scale(0.94); }
+.ai-tab[data-ai="all"].active { background:rgba(255,255,255,0.09); color:white; border-color:rgba(255,255,255,0.15); }
+.ai-tab[data-ai="claude"].active { background:var(--claude-dim); color:var(--claude); border-color:rgba(255,107,74,0.3); }
+.ai-tab[data-ai="gpt"].active { background:var(--gpt-dim); color:var(--gpt); border-color:rgba(16,185,129,0.3); }
+.ai-tab[data-ai="gemini"].active { background:var(--gemini-dim); color:var(--gemini); border-color:rgba(59,130,246,0.3); }
+.ai-tab[data-ai="mistral"].active { background:var(--mistral-dim); color:var(--mistral); border-color:rgba(168,85,247,0.3); }
+
+/* ── MESSAGES ── */
+.messages {
+  flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch;
+  padding:14px 12px; display:flex; flex-direction:column; gap:16px;
+  scrollbar-width:none;
+}
+.messages::-webkit-scrollbar { display:none; }
+@media (min-width:768px) {
+  .messages { padding:24px; scrollbar-width:thin; scrollbar-color:var(--border) transparent; }
+  .messages::-webkit-scrollbar { display:block; width:4px; }
+  .messages::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
+}
+
+.msg-group { display:flex; flex-direction:column; gap:10px; animation:msgIn 0.28s cubic-bezier(0.4,0,0.2,1); }
+@keyframes msgIn { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+
+.msg-user { display:flex; justify-content:flex-end; }
+.bubble {
+  background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.09);
+  padding:11px 15px; border-radius:18px 18px 5px 18px;
+  max-width:min(78%,460px); font-size:13px; line-height:1.65; word-break:break-word;
+}
+
+/* AI response grid */
+.ai-responses { display:flex; flex-direction:column; gap:8px; }
+@media (min-width:640px) {
+  .ai-responses.multi { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+}
+
+.ai-response {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--radius); overflow:hidden; transition:border-color 0.2s;
+}
+@media (hover:hover) { .ai-response:hover { border-color:#2a2a3e; } }
+
+.ai-resp-head {
+  display:flex; align-items:center; gap:7px; padding:9px 12px;
+  border-bottom:1px solid var(--border); font-size:11px; font-weight:500;
+}
+.ai-resp-head .dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
+.focus-btn {
+  margin-left:auto; background:none; border:1px solid var(--border); color:var(--muted);
+  padding:3px 8px; border-radius:5px; font-size:9px; cursor:pointer;
+  font-family:'DM Mono',monospace; text-transform:uppercase; letter-spacing:0.4px; transition:all 0.15s;
+}
+.focus-btn:active { background:rgba(255,255,255,0.06); }
+
+.ai-resp-body {
+  padding:12px; font-size:13px; line-height:1.72; color:var(--text);
+  min-height:52px; word-break:break-word;
+}
+.ai-resp-body.typing { color:var(--muted); }
+.ai-resp-body.typing::after { content:'▋'; animation:blink 0.7s infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+/* ── WELCOME ── */
+.welcome {
+  flex:1; display:flex; align-items:center; justify-content:center;
+  flex-direction:column; gap:16px; padding:32px 20px; text-align:center;
+}
+.welcome-title {
+  font-family:'Syne',sans-serif; font-size:clamp(26px,8vw,42px); font-weight:800;
+  background:linear-gradient(160deg,#fff 0%,#3a3a5a 100%);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+  letter-spacing:-1px; line-height:1.12;
+}
+.welcome-sub { font-size:12px; color:var(--muted); max-width:280px; line-height:1.85; }
+.welcome-chips { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; max-width:360px; }
+.chip {
+  padding:9px 14px; background:var(--surface); border:1px solid var(--border);
+  border-radius:20px; font-size:11px; cursor:pointer; transition:all 0.2s;
+  font-family:'DM Mono',monospace; color:var(--muted); user-select:none;
+}
+.chip:active { background:rgba(255,255,255,0.07); color:var(--text); transform:scale(0.96); }
+@media (hover:hover) { .chip:hover { background:rgba(255,255,255,0.06); color:var(--text); border-color:var(--muted); } }
+
+/* ── INPUT AREA ── */
+.input-area {
+  padding:10px 12px; padding-bottom:calc(10px + env(safe-area-inset-bottom, 0px));
+  border-top:1px solid var(--border); background:rgba(10,10,15,0.97);
+  backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); flex-shrink:0;
+}
+@media (min-width:768px) { .input-area { padding:14px 24px; } }
+
+.input-wrap {
+  display:flex; align-items:flex-end; gap:8px;
+  background:var(--surface2); border:1px solid var(--border);
+  border-radius:var(--radius); padding:10px 12px; transition:border-color 0.2s;
+}
+.input-wrap:focus-within { border-color:rgba(255,255,255,0.18); }
+.input-wrap textarea {
+  flex:1; background:transparent; border:none; outline:none; color:var(--text);
+  font-family:'DM Mono',monospace; font-size:14px; resize:none;
+  max-height:110px; min-height:22px; line-height:1.5; -webkit-appearance:none;
+}
+.input-wrap textarea::placeholder { color:var(--muted); }
+
+.send-btn {
+  width:38px; height:38px; background:white; border:none; border-radius:10px;
+  cursor:pointer; display:flex; align-items:center; justify-content:center;
+  transition:all 0.15s; flex-shrink:0; color:#0a0a0f;
+}
+.send-btn:active { transform:scale(0.88); }
+
+.input-meta {
+  display:flex; align-items:center; justify-content:space-between;
+  margin-top:8px; padding:0 2px; flex-wrap:wrap; gap:6px;
+}
+.active-row { display:flex; align-items:center; gap:5px; flex-wrap:wrap; }
+.active-label { font-size:9px; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; }
+.mbadge { padding:2px 8px; border-radius:4px; font-size:9px; font-weight:500; text-transform:uppercase; }
+.kbd-hint { font-size:9px; color:#3a3a5a; }
+@media (max-width:480px) { .kbd-hint { display:none; } }
+
+/* ── MODAL / BOTTOM SHEET ── */
+.modal-overlay {
+  display:none; position:fixed; inset:0;
+  background:rgba(0,0,0,0.78); backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px); z-index:300;
+  align-items:flex-end; justify-content:center;
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+.modal-overlay.open { display:flex; }
+@media (min-width:540px) { .modal-overlay { align-items:center; } }
+
+.modal {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:20px 20px 0 0; width:100%; max-width:480px;
+  overflow:hidden; animation:sheetUp 0.3s cubic-bezier(0.4,0,0.2,1);
+  max-height:90vh; display:flex; flex-direction:column;
+}
+@media (min-width:540px) { .modal { border-radius:18px; animation:popIn 0.25s ease; } }
+@keyframes sheetUp { from{transform:translateY(60px);opacity:0} to{transform:translateY(0);opacity:1} }
+@keyframes popIn { from{transform:scale(0.94);opacity:0} to{transform:scale(1);opacity:1} }
+
+.modal-handle {
+  width:36px; height:4px; background:var(--border); border-radius:2px;
+  margin:12px auto 0; flex-shrink:0;
+}
+@media (min-width:540px) { .modal-handle { display:none; } }
+
+.modal-header {
+  display:flex; justify-content:space-between; align-items:center;
+  padding:16px 20px 14px; border-bottom:1px solid var(--border); flex-shrink:0;
+  font-family:'Syne',sans-serif; font-weight:700; font-size:15px;
+}
+.modal-close {
+  background:var(--surface2); border:1px solid var(--border); border-radius:8px;
+  color:var(--muted); cursor:pointer; font-size:16px; width:32px; height:32px;
+  display:flex; align-items:center; justify-content:center; transition:all 0.15s;
+}
+.modal-close:active { background:rgba(255,255,255,0.08); }
+
+.modal-body {
+  padding:18px 20px; display:flex; flex-direction:column; gap:14px;
+  overflow-y:auto; -webkit-overflow-scrolling:touch;
+}
+.field label {
+  display:flex; align-items:center; gap:6px; font-size:10px;
+  text-transform:uppercase; letter-spacing:1px; color:var(--muted); margin-bottom:7px;
+}
+.field label .dot { width:6px; height:6px; border-radius:50%; }
+.field input {
+  width:100%; background:var(--bg); border:1px solid var(--border);
+  border-radius:10px; padding:12px 14px; color:var(--text);
+  font-family:'DM Mono',monospace; font-size:12px; outline:none;
+  transition:border-color 0.2s; -webkit-appearance:none;
+}
+.field input:focus { border-color:rgba(255,255,255,0.2); }
+.field input::placeholder { color:var(--muted); }
+
+.modal-footer {
+  padding:14px 20px; border-top:1px solid var(--border);
+  display:flex; justify-content:flex-end; gap:8px; flex-shrink:0;
+}
+.btn {
+  padding:10px 20px; border-radius:10px; font-family:'DM Mono',monospace;
+  font-size:12px; font-weight:500; cursor:pointer; text-transform:uppercase;
+  letter-spacing:0.4px; border:none; transition:all 0.15s;
+}
+.btn:active { transform:scale(0.95); }
+.btn-ghost { background:transparent; color:var(--muted); border:1px solid var(--border); }
+.btn-primary { background:white; color:#0a0a0f; }
+
+/* ── TOAST ── */
+.toast {
+  position:fixed; bottom:calc(20px + env(safe-area-inset-bottom,0px));
+  left:50%; transform:translateX(-50%);
+  background:rgba(232,232,240,0.96); color:#0a0a0f;
+  padding:10px 20px; border-radius:30px; font-size:12px;
+  font-family:'DM Mono',monospace; z-index:999; white-space:nowrap;
+  animation:toastIn 0.25s cubic-bezier(0.4,0,0.2,1);
+}
+@keyframes toastIn { from{opacity:0;transform:translateX(-50%) translateY(8px)} to{opacity:1;transform:translateX(-50%) translateY(0)} }
+
+/* ── COLORS ── */
+.claude-c{color:var(--claude)} .gpt-c{color:var(--gpt)} .gemini-c{color:var(--gemini)} .mistral-c{color:var(--mistral)}
+.claude-dot{background:var(--claude)} .gpt-dot{background:var(--gpt)} .gemini-dot{background:var(--gemini)} .mistral-dot{background:var(--mistral)}
+.claude-b{background:var(--claude-dim);color:var(--claude)} .gpt-b{background:var(--gpt-dim);color:var(--gpt)}
+.gemini-b{background:var(--gemini-dim);color:var(--gemini)} .mistral-b{background:var(--mistral-dim);color:var(--mistral)}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <button class="menu-btn" onclick="toggleDrawer()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="15" y2="18"/>
+      </svg>
+    </button>
+    <div class="logo"><div class="logo-icon">⬡</div>Multi-AI</div>
+  </div>
+  <div class="header-right">
+    <div class="status-pill"><b id="cnt">0</b> active</div>
+    <button class="icon-btn" onclick="openSettings()">⚙</button>
+  </div>
+</div>
+
+<div class="main">
+  <div class="drawer-overlay" id="overlay" onclick="closeDrawer()"></div>
+
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-title">Models</div>
+      <div class="model-card" onclick="toggleModel('claude')">
+        <div class="model-dot claude-dot"></div>
+        <div class="model-info"><div class="model-name claude-c">Claude</div><div class="model-sub">claude-sonnet-4-6</div></div>
+        <div class="toggle" id="t-claude" style="color:var(--claude)"></div>
+      </div>
+      <div class="model-card" onclick="toggleModel('gpt')">
+        <div class="model-dot gpt-dot"></div>
+        <div class="model-info"><div class="model-name gpt-c">GPT-4o</div><div class="model-sub">gpt-4o-2024-08</div></div>
+        <div class="toggle" id="t-gpt" style="color:var(--gpt)"></div>
+      </div>
+      <div class="model-card" onclick="toggleModel('gemini')">
+        <div class="model-dot gemini-dot"></div>
+        <div class="model-info"><div class="model-name gemini-c">Gemini</div><div class="model-sub">gemini-1.5-pro</div></div>
+        <div class="toggle" id="t-gemini" style="color:var(--gemini)"></div>
+      </div>
+      <div class="model-card" onclick="toggleModel('mistral')">
+        <div class="model-dot mistral-dot"></div>
+        <div class="model-info"><div class="model-name mistral-c">Mistral</div><div class="model-sub">mistral-large-2</div></div>
+        <div class="toggle" id="t-mistral" style="color:var(--mistral)"></div>
+      </div>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-title">History</div>
+      <div id="hist" style="font-size:10px;color:var(--muted);padding:4px 10px;">Chưa có lịch sử</div>
+    </div>
+  </div>
+
+  <div class="chat-area">
+    <div class="tabs-bar">
+      <div class="tabs-inner">
+        <button class="ai-tab active" data-ai="all" onclick="switchView('all')">All</button>
+        <button class="ai-tab" data-ai="claude" onclick="switchView('claude')">Claude</button>
+        <button class="ai-tab" data-ai="gpt" onclick="switchView('gpt')">GPT-4</button>
+        <button class="ai-tab" data-ai="gemini" onclick="switchView('gemini')">Gemini</button>
+        <button class="ai-tab" data-ai="mistral" onclick="switchView('mistral')">Mistral</button>
+      </div>
+    </div>
+
+    <div class="messages" id="msgs">
+      <div class="welcome" id="welcome">
+        <div class="welcome-title">Ask once,<br>compare all.</div>
+        <div class="welcome-sub">Gửi một prompt đến nhiều AI cùng lúc và so sánh câu trả lời.</div>
+        <div class="welcome-chips">
+          <div class="chip" onclick="useChip(this)">Giải thích quantum computing</div>
+          <div class="chip" onclick="useChip(this)">Viết bài thơ về mùa thu</div>
+          <div class="chip" onclick="useChip(this)">So sánh React vs Vue</div>
+          <div class="chip" onclick="useChip(this)">Lập kế hoạch học máy</div>
+          <div class="chip" onclick="useChip(this)">Debug code Python</div>
+          <div class="chip" onclick="useChip(this)">Tóm tắt lịch sử Việt Nam</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="input-area">
+      <div class="input-wrap">
+        <textarea id="inp" placeholder="Nhập tin nhắn..." rows="1"
+          onkeydown="onKey(event)" oninput="resize(this)"></textarea>
+        <button class="send-btn" onclick="send()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+          </svg>
+        </button>
+      </div>
+      <div class="input-meta">
+        <div class="active-row" id="badges">
+          <span class="active-label">To:</span>
+          <span style="font-size:10px;color:var(--muted)">—</span>
+        </div>
+        <span class="kbd-hint">⌘↵ to send</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Settings bottom sheet -->
+<div class="modal-overlay" id="modal" onclick="outsideClose(event)">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <span>API Keys</span>
+      <button class="modal-close" onclick="closeSettings()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="field">
+        <label><div class="dot claude-dot"></div>Anthropic (Claude)</label>
+        <input type="password" id="k-claude" placeholder="sk-ant-..." autocomplete="off">
+      </div>
+      <div class="field">
+        <label><div class="dot gpt-dot"></div>OpenAI (GPT-4)</label>
+        <input type="password" id="k-gpt" placeholder="sk-..." autocomplete="off">
+      </div>
+      <div class="field">
+        <label><div class="dot gemini-dot"></div>Google (Gemini)</label>
+        <input type="password" id="k-gemini" placeholder="AIza..." autocomplete="off">
+      </div>
+      <div class="field">
+        <label><div class="dot mistral-dot"></div>Mistral AI</label>
+        <input type="password" id="k-mistral" placeholder="your-key..." autocomplete="off">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeSettings()">Huỷ</button>
+      <button class="btn btn-primary" onclick="saveKeys()">Lưu</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const S = {
+  models:{claude:false,gpt:false,gemini:false,mistral:false},
+  keys:{}, view:'all'
+};
+['claude','gpt','gemini','mistral'].forEach(m => { const k=localStorage.getItem('k_'+m); if(k) S.keys[m]=k; });
+
+// Drawer
+let drawerOpen=false;
+function toggleDrawer(){ drawerOpen?closeDrawer():openDrawer(); }
+function openDrawer(){
+  drawerOpen=true;
+  document.getElementById('sidebar').classList.add('open');
+  document.getElementById('overlay').classList.add('open');
+}
+function closeDrawer(){
+  drawerOpen=false;
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('overlay').classList.remove('open');
+}
+
+// Swipe to close
+let sx=0;
+const sb=document.getElementById('sidebar');
+sb.addEventListener('touchstart',e=>{sx=e.touches[0].clientX;},{passive:true});
+sb.addEventListener('touchmove',e=>{ if(e.touches[0].clientX-sx<-40) closeDrawer(); },{passive:true});
+
+// Model toggle
+function toggleModel(m){
+  S.models[m]=!S.models[m];
+  document.getElementById('t-'+m).classList.toggle('on',S.models[m]);
+  updateBadges(); updateCount();
+  if(window.innerWidth<768) setTimeout(closeDrawer,200);
+}
+
+function updateBadges(){
+  const active=Object.entries(S.models).filter(([,v])=>v).map(([k])=>k);
+  const c=document.getElementById('badges');
+  if(!active.length){ c.innerHTML=`<span class="active-label">To:</span><span style="font-size:10px;color:var(--muted)">—</span>`; return; }
+  c.innerHTML=`<span class="active-label">To:</span>`+active.map(m=>`<span class="mbadge ${m}-b">${m}</span>`).join('');
+}
+
+function updateCount(){
+  document.getElementById('cnt').textContent=Object.values(S.models).filter(Boolean).length;
+}
+
+// View switching
+function switchView(v){
+  S.view=v;
+  document.querySelectorAll('.ai-tab').forEach(t=>t.classList.remove('active'));
+  const tab=document.querySelector(`.ai-tab[data-ai="${v}"]`);
+  tab.classList.add('active');
+  tab.scrollIntoView({behavior:'smooth',inline:'center',block:'nearest'});
+  document.querySelectorAll('.ai-response').forEach(el=>{
+    el.style.display=(v==='all'||el.dataset.ai===v)?'':'none';
+  });
+  document.querySelectorAll('.ai-responses').forEach(el=>{
+    if(v!=='all'){ el.classList.remove('multi'); }
+    else{ const n=el.querySelectorAll('.ai-response:not([style*="none"])').length; el.classList.toggle('multi',n>1); }
+  });
+}
+
+// Settings
+function openSettings(){
+  ['claude','gpt','gemini','mistral'].forEach(m=>{ document.getElementById('k-'+m).value=S.keys[m]||''; });
+  document.getElementById('modal').classList.add('open');
+}
+function closeSettings(){ document.getElementById('modal').classList.remove('open'); }
+function outsideClose(e){ if(e.target.id==='modal') closeSettings(); }
+function saveKeys(){
+  ['claude','gpt','gemini','mistral'].forEach(m=>{
+    const v=document.getElementById('k-'+m).value.trim();
+    S.keys[m]=v;
+    v?localStorage.setItem('k_'+m,v):localStorage.removeItem('k_'+m);
+  });
+  closeSettings(); toast('Keys saved ✓');
+}
+
+// Toast
+function toast(msg){
+  document.querySelectorAll('.toast').forEach(t=>t.remove());
+  const t=document.createElement('div'); t.className='toast'; t.textContent=msg;
+  document.body.appendChild(t); setTimeout(()=>t.remove(),2400);
+}
+
+// Input
+function onKey(e){ if((e.metaKey||e.ctrlKey)&&e.key==='Enter'){e.preventDefault();send();} }
+function resize(el){ el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,110)+'px'; }
+function useChip(el){ document.getElementById('inp').value=el.textContent; send(); }
+
+// Send
+async function send(){
+  const inp=document.getElementById('inp');
+  const text=inp.value.trim(); if(!text) return;
+  const active=Object.entries(S.models).filter(([,v])=>v).map(([k])=>k);
+  if(!active.length){ toast('Bật ít nhất 1 model'); openDrawer(); return; }
+
+  const w=document.getElementById('welcome'); if(w) w.remove();
+  inp.value=''; inp.style.height='auto';
+  const msgs=document.getElementById('msgs');
+
+  // User bubble
+  const g=document.createElement('div'); g.className='msg-group';
+  g.innerHTML=`<div class="msg-user"><div class="bubble">${esc(text)}</div></div>`;
+  msgs.appendChild(g);
+
+  // AI cards
+  const rc=document.createElement('div');
+  rc.className=`ai-responses${active.length>1?' multi':''}`;
+  const names={claude:'Claude',gpt:'GPT-4o',gemini:'Gemini',mistral:'Mistral'};
+  const bodyEls={};
+  active.forEach(m=>{
+    const card=document.createElement('div');
+    card.className='ai-response'; card.dataset.ai=m;
+    card.innerHTML=`<div class="ai-resp-head"><div class="dot ${m}-dot"></div><span class="${m}-c">${names[m]}</span><button class="focus-btn" onclick="switchView('${m}')">focus</button></div><div class="ai-resp-body typing"></div>`;
+    rc.appendChild(card);
+    bodyEls[m]=card.querySelector('.ai-resp-body');
+  });
+  g.appendChild(rc);
+  msgs.scrollTop=msgs.scrollHeight;
+  await Promise.allSettled(active.map(m=>callAI(m,text,bodyEls[m])));
+  msgs.scrollTop=msgs.scrollHeight;
+}
+
+// API
+async function callAI(m,prompt,el){
+  const key=S.keys[m]; if(!key){await demo(m,el);return;}
+  try{
+    let text='';
+    if(m==='claude'){
+      const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1024,messages:[{role:'user',content:prompt}]})});
+      const d=await r.json(); text=d.content?.[0]?.text||'Error: '+(d.error?.message||'');
+    } else if(m==='gpt'){
+      const r=await fetch('https://api.openai.com/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({model:'gpt-4o',messages:[{role:'user',content:prompt}],max_tokens:1024})});
+      const d=await r.json(); text=d.choices?.[0]?.message?.content||'Error: '+(d.error?.message||'');
+    } else if(m==='gemini'){
+      const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${key}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}]})});
+      const d=await r.json(); text=d.candidates?.[0]?.content?.parts?.[0]?.text||'Error';
+    } else if(m==='mistral'){
+      const r=await fetch('https://api.mistral.ai/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify({model:'mistral-large-latest',messages:[{role:'user',content:prompt}],max_tokens:1024})});
+      const d=await r.json(); text=d.choices?.[0]?.message?.content||'Error';
+    }
+    el.classList.remove('typing'); el.textContent=text;
+  } catch(e){ el.classList.remove('typing'); el.textContent='⚠ '+e.message; }
+}
+
+// Demo
+const DEMO={
+  claude:["Đây là câu trả lời mẫu từ Claude. Thêm API key Anthropic trong Settings để nhận phản hồi thực tế. Claude nổi tiếng với phân tích sâu và văn phong tự nhiên.",
+          "Claude ở đây! Tôi giúp phân tích, viết lách, lập trình và hơn thế. Thêm API key để bắt đầu nhé."],
+  gpt:   ["GPT-4o demo. Cần OpenAI API key để nhận phản hồi thực. GPT-4o mạnh về reasoning và đa phương thức.",
+          "Demo GPT-4o. Cấu hình OpenAI key trong Settings để nhận câu trả lời thực tế."],
+  gemini:["Gemini 1.5 Pro demo. Cần Google AI key. Tôi xuất sắc xử lý context dài và multimodal.",
+          "Demo Gemini. Hãy cấu hình Google key để dùng đầy đủ tính năng."],
+  mistral:["Mistral Large demo. Thêm Mistral key để nhận phản hồi thực. Hiệu năng cao, nguồn mở.",
+           "Demo Mistral AI. Mô hình châu Âu, performance tốt và giá cả hợp lý."]
+};
+const DI={claude:0,gpt:0,gemini:0,mistral:0};
+
+async function demo(m,el){
+  await new Promise(r=>setTimeout(r,700+Math.random()*900));
+  const text=DEMO[m][DI[m]++%DEMO[m].length];
+  el.classList.remove('typing'); el.textContent='';
+  let i=0; const iv=setInterval(()=>{ el.textContent+=text[i++]; if(i>=text.length) clearInterval(iv); },14);
+}
+
+function esc(t){ return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// Init
+updateBadges(); updateCount();
+if(window.innerWidth>=768) document.getElementById('inp').focus();
+</script>
+</body>
+</html>
