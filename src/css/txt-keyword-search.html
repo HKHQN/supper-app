@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TXT Search — Tìm kiếm đa file</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --surface2: #1a1a26;
+    --border: #2a2a3e;
+    --accent: #7c6ef7;
+    --accent2: #f76e6e;
+    --accent3: #6ef7c4;
+    --text: #e8e8f0;
+    --muted: #6b6b8a;
+    --highlight-bg: rgba(124,110,247,0.25);
+    --highlight-border: #7c6ef7;
+  }
+
+  body {
+    font-family: 'Syne', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 0;
+    overflow-x: hidden;
+  }
+
+  /* Background grid */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(124,110,247,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(124,110,247,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+  }
+
+  /* Header */
+  header {
+    margin-bottom: 48px;
+  }
+
+  .header-tag {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  h1 {
+    font-size: clamp(2rem, 5vw, 3.5rem);
+    font-weight: 800;
+    line-height: 1.05;
+    letter-spacing: -1px;
+  }
+
+  h1 em {
+    font-style: normal;
+    color: var(--accent);
+  }
+
+  .subtitle {
+    margin-top: 12px;
+    color: var(--muted);
+    font-size: 15px;
+    font-weight: 400;
+  }
+
+  /* Upload zone */
+  .upload-zone {
+    border: 2px dashed var(--border);
+    border-radius: 16px;
+    padding: 40px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    background: var(--surface);
+    margin-bottom: 28px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .upload-zone:hover, .upload-zone.drag-over {
+    border-color: var(--accent);
+    background: rgba(124,110,247,0.06);
+  }
+
+  .upload-zone::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle at center, rgba(124,110,247,0.08) 0%, transparent 60%);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .upload-zone:hover::before { opacity: 1; }
+
+  .upload-icon {
+    font-size: 40px;
+    margin-bottom: 12px;
+  }
+
+  .upload-zone p {
+    color: var(--muted);
+    font-size: 14px;
+    margin-top: 6px;
+  }
+
+  .upload-zone strong {
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  #fileInput { display: none; }
+
+  /* File list */
+  .file-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 28px;
+  }
+
+  .file-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    color: var(--text);
+    animation: chipIn 0.2s ease;
+  }
+
+  @keyframes chipIn {
+    from { opacity: 0; transform: scale(0.9); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  .file-chip .size { color: var(--muted); }
+  .file-chip .remove {
+    cursor: pointer;
+    color: var(--muted);
+    transition: color 0.15s;
+    font-size: 14px;
+    line-height: 1;
+  }
+  .file-chip .remove:hover { color: var(--accent2); }
+
+  /* Search panel */
+  .search-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px;
+    margin-bottom: 28px;
+  }
+
+  .search-panel label {
+    display: block;
+    font-size: 12px;
+    font-family: 'Space Mono', monospace;
+    color: var(--muted);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+
+  .keyword-input-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .keyword-input-row input {
+    flex: 1;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 16px;
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .keyword-input-row input:focus { border-color: var(--accent); }
+  .keyword-input-row input::placeholder { color: var(--muted); }
+
+  .btn {
+    padding: 12px 20px;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    font-family: 'Syne', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    transition: all 0.2s;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #fff;
+  }
+  .btn-primary:hover { background: #6a5ce6; transform: translateY(-1px); }
+
+  .btn-outline {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+  }
+  .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* Keywords tags */
+  .keywords-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 16px;
+    min-height: 32px;
+  }
+
+  .kw-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(124,110,247,0.15);
+    border: 1px solid rgba(124,110,247,0.4);
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    color: var(--accent);
+    animation: chipIn 0.15s ease;
+  }
+
+  .kw-tag .kw-remove {
+    cursor: pointer;
+    opacity: 0.6;
+    transition: opacity 0.15s;
+  }
+  .kw-tag .kw-remove:hover { opacity: 1; }
+
+  /* Options row */
+  .options-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    align-items: center;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+  }
+
+  .opt-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .toggle-group {
+    display: flex;
+    gap: 4px;
+  }
+
+  .toggle-btn {
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .toggle-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+
+  .search-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+  }
+
+  .btn-search {
+    flex: 1;
+    padding: 14px;
+    background: linear-gradient(135deg, var(--accent), #a78bfa);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.5px;
+  }
+
+  .btn-search:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(124,110,247,0.35); }
+  .btn-search:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  /* Stats bar */
+  .stats-bar {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 14px 20px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 20px;
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+  }
+
+  .stat-item strong { color: var(--accent); font-size: 18px; font-weight: 700; }
+  .stat-item span { color: var(--muted); display: block; font-size: 10px; margin-top: 2px; }
+
+  .stat-divider { width: 1px; height: 30px; background: var(--border); }
+
+  /* Results */
+  .results-area { display: flex; flex-direction: column; gap: 16px; }
+
+  .file-result {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    animation: slideIn 0.25s ease;
+  }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .file-result-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .file-name {
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+    color: var(--accent3);
+    font-weight: 700;
+  }
+
+  .file-matches-count {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    background: rgba(124,110,247,0.2);
+    color: var(--accent);
+    padding: 3px 10px;
+    border-radius: 20px;
+  }
+
+  .match-list { padding: 0; }
+
+  .match-item {
+    padding: 12px 20px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    display: grid;
+    grid-template-columns: 50px 1fr;
+    gap: 12px;
+    align-items: start;
+    transition: background 0.15s;
+  }
+
+  .match-item:last-child { border-bottom: none; }
+  .match-item:hover { background: rgba(255,255,255,0.02); }
+
+  .line-num {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    padding-top: 2px;
+    text-align: right;
+  }
+
+  .line-content {
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #c8c8e0;
+    word-break: break-word;
+    white-space: pre-wrap;
+  }
+
+  .line-content mark {
+    background: rgba(124,110,247,0.3);
+    color: #b8b0ff;
+    border-radius: 3px;
+    padding: 0 2px;
+    font-weight: 700;
+    outline: 1px solid rgba(124,110,247,0.5);
+  }
+
+  .no-results {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--muted);
+  }
+
+  .no-results .icon { font-size: 48px; margin-bottom: 12px; }
+  .no-results p { font-size: 15px; }
+
+  .empty-state {
+    text-align: center;
+    padding: 80px 20px;
+    color: var(--muted);
+  }
+
+  .empty-state .icon { font-size: 56px; margin-bottom: 16px; }
+
+  /* Collapsible */
+  .match-list.collapsed { display: none; }
+  .collapse-arrow { transition: transform 0.2s; font-size: 12px; color: var(--muted); }
+  .collapsed-parent .collapse-arrow { transform: rotate(-90deg); }
+
+  /* Context lines toggle */
+  .context-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+  }
+  .context-option input { accent-color: var(--accent); }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div class="header-tag">// multi-file search</div>
+    <h1>Tìm kiếm<br><em>đa file TXT</em></h1>
+    <p class="subtitle">Upload nhiều file .txt, nhập keywords → tìm ngay tất cả kết quả khớp</p>
+  </header>
+
+  <!-- Upload -->
+  <div class="upload-zone" id="uploadZone">
+    <input type="file" id="fileInput" accept=".txt" multiple>
+    <div class="upload-icon">📂</div>
+    <strong>Kéo thả file TXT vào đây</strong>
+    <p>hoặc <strong>click để chọn</strong> — hỗ trợ nhiều file cùng lúc</p>
+  </div>
+
+  <div class="file-list" id="fileList"></div>
+
+  <!-- Search panel -->
+  <div class="search-panel">
+    <label>Keywords tìm kiếm</label>
+
+    <div class="keyword-input-row">
+      <input type="text" id="kwInput" placeholder='Nhập keyword rồi nhấn Enter hoặc nút "+"…' autocomplete="off">
+      <button class="btn btn-primary" onclick="addKeyword()">+</button>
+    </div>
+
+    <div class="keywords-tags" id="keywordTags">
+      <span style="font-size:12px;color:var(--muted);align-self:center;font-family:'Space Mono',monospace">
+        Chưa có keyword nào…
+      </span>
+    </div>
+
+    <div class="options-row">
+      <span class="opt-label">Chế độ khớp:</span>
+      <div class="toggle-group">
+        <button class="toggle-btn active" id="modeAny" onclick="setMode('any')">BẤT KỲ (OR)</button>
+        <button class="toggle-btn" id="modeAll" onclick="setMode('all')">TẤT CẢ (AND)</button>
+      </div>
+
+      <span class="opt-label" style="margin-left:8px">Phân biệt HOA/thường:</span>
+      <div class="toggle-group">
+        <button class="toggle-btn active" id="caseNo" onclick="setCase(false)">Không</button>
+        <button class="toggle-btn" id="caseYes" onclick="setCase(true)">Có</button>
+      </div>
+
+      <label class="context-option" style="margin-left:8px">
+        <input type="checkbox" id="showContext"> <span class="opt-label">Hiện dòng lân cận</span>
+      </label>
+    </div>
+
+    <div class="search-actions">
+      <button class="btn-search" id="searchBtn" onclick="doSearch()" disabled>
+        🔍 Tìm kiếm
+      </button>
+      <button class="btn btn-outline" onclick="clearAll()" style="padding:14px 20px">Xóa tất cả</button>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-bar" id="statsBar" style="display:none">
+    <div class="stat-item">
+      <strong id="statFiles">0</strong>
+      <span>Files tìm thấy</span>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat-item">
+      <strong id="statMatches">0</strong>
+      <span>Dòng khớp</span>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat-item">
+      <strong id="statKws">0</strong>
+      <span>Keywords</span>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat-item" style="flex:1;text-align:right">
+      <input type="text" id="filterInput" placeholder="Lọc nhanh kết quả…"
+        style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:6px 12px;color:var(--text);font-family:'Space Mono',monospace;font-size:12px;outline:none;width:200px"
+        oninput="filterResults()">
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div class="results-area" id="results">
+    <div class="empty-state">
+      <div class="icon">📄</div>
+      <p>Upload file và nhập keywords để bắt đầu tìm kiếm</p>
+    </div>
+  </div>
+</div>
+
+<script>
+  const files = new Map(); // name -> content
+  let keywords = [];
+  let searchMode = 'any';
+  let caseSensitive = false;
+  let lastResults = [];
+
+  // ─── Upload ───────────────────────────────────────────
+  const uploadZone = document.getElementById('uploadZone');
+  const fileInput = document.getElementById('fileInput');
+
+  uploadZone.addEventListener('click', () => fileInput.click());
+  fileInput.addEventListener('change', e => loadFiles(e.target.files));
+
+  uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
+  uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+  uploadZone.addEventListener('drop', e => {
+    e.preventDefault();
+    uploadZone.classList.remove('drag-over');
+    loadFiles(e.dataTransfer.files);
+  });
+
+  function loadFiles(fileList) {
+    for (const f of fileList) {
+      if (!f.name.endsWith('.txt')) continue;
+      const reader = new FileReader();
+      reader.onload = e => {
+        files.set(f.name, e.target.result);
+        renderFileChips();
+        updateSearchBtn();
+      };
+      reader.readAsText(f, 'utf-8');
+    }
+  }
+
+  function renderFileChips() {
+    const el = document.getElementById('fileList');
+    el.innerHTML = '';
+    files.forEach((content, name) => {
+      const lines = content.split('\n').length;
+      const size = (new Blob([content]).size / 1024).toFixed(1);
+      el.innerHTML += `
+        <div class="file-chip">
+          📄 ${escHtml(name)}
+          <span class="size">${lines} dòng · ${size}KB</span>
+          <span class="remove" onclick="removeFile('${escJs(name)}')">×</span>
+        </div>`;
+    });
+  }
+
+  function removeFile(name) {
+    files.delete(name);
+    renderFileChips();
+    updateSearchBtn();
+  }
+
+  // ─── Keywords ─────────────────────────────────────────
+  document.getElementById('kwInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') addKeyword();
+  });
+
+  function addKeyword() {
+    const val = document.getElementById('kwInput').value.trim();
+    if (!val || keywords.includes(val)) return;
+    keywords.push(val);
+    document.getElementById('kwInput').value = '';
+    renderKeywords();
+    updateSearchBtn();
+  }
+
+  function removeKeyword(kw) {
+    keywords = keywords.filter(k => k !== kw);
+    renderKeywords();
+    updateSearchBtn();
+  }
+
+  function renderKeywords() {
+    const el = document.getElementById('keywordTags');
+    if (!keywords.length) {
+      el.innerHTML = `<span style="font-size:12px;color:var(--muted);align-self:center;font-family:'Space Mono',monospace">Chưa có keyword nào…</span>`;
+      return;
+    }
+    el.innerHTML = keywords.map(k =>
+      `<span class="kw-tag">${escHtml(k)}<span class="kw-remove" onclick="removeKeyword('${escJs(k)}')">×</span></span>`
+    ).join('');
+  }
+
+  function setMode(m) {
+    searchMode = m;
+    document.getElementById('modeAny').classList.toggle('active', m === 'any');
+    document.getElementById('modeAll').classList.toggle('active', m === 'all');
+  }
+
+  function setCase(v) {
+    caseSensitive = v;
+    document.getElementById('caseNo').classList.toggle('active', !v);
+    document.getElementById('caseYes').classList.toggle('active', v);
+  }
+
+  function updateSearchBtn() {
+    document.getElementById('searchBtn').disabled = !(files.size > 0 && keywords.length > 0);
+  }
+
+  // ─── Search ───────────────────────────────────────────
+  function doSearch() {
+    const showContext = document.getElementById('showContext').checked;
+    lastResults = [];
+
+    files.forEach((content, fname) => {
+      const lines = content.split('\n');
+      const matchedLines = [];
+
+      lines.forEach((line, idx) => {
+        const haystack = caseSensitive ? line : line.toLowerCase();
+        const kws = caseSensitive ? keywords : keywords.map(k => k.toLowerCase());
+
+        const hits = kws.map(kw => haystack.includes(kw));
+        const matched = searchMode === 'any' ? hits.some(Boolean) : hits.every(Boolean);
+
+        if (matched) {
+          const matchedKws = keywords.filter((_, i) => hits[i]);
+          const contextLines = showContext
+            ? lines.slice(Math.max(0, idx - 1), idx + 2).map((l, ci) => ({
+                lineNo: Math.max(0, idx - 1) + ci + 1,
+                text: l,
+                isMatch: Math.max(0, idx - 1) + ci === idx
+              }))
+            : [{ lineNo: idx + 1, text: line, isMatch: true }];
+
+          matchedLines.push({ lineNo: idx + 1, text: line, matchedKws, contextLines });
+        }
+      });
+
+      if (matchedLines.length > 0) {
+        lastResults.push({ fname, matchedLines });
+      }
+    });
+
+    renderResults(lastResults);
+  }
+
+  function renderResults(results) {
+    const totalMatches = results.reduce((s, r) => s + r.matchedLines.length, 0);
+    const statsBar = document.getElementById('statsBar');
+
+    statsBar.style.display = results.length > 0 ? 'flex' : 'none';
+    document.getElementById('statFiles').textContent = results.length;
+    document.getElementById('statMatches').textContent = totalMatches;
+    document.getElementById('statKws').textContent = keywords.length;
+
+    const el = document.getElementById('results');
+
+    if (!results.length) {
+      el.innerHTML = `<div class="no-results"><div class="icon">🔍</div><p>Không tìm thấy kết quả nào khớp</p></div>`;
+      return;
+    }
+
+    el.innerHTML = results.map((r, ri) => `
+      <div class="file-result" id="fr${ri}">
+        <div class="file-result-header" onclick="toggleFile(${ri})">
+          <span class="file-name">📄 ${escHtml(r.fname)}</span>
+          <div style="display:flex;align-items:center;gap:10px">
+            <span class="file-matches-count">${r.matchedLines.length} dòng khớp</span>
+            <span class="collapse-arrow">▾</span>
+          </div>
+        </div>
+        <div class="match-list" id="ml${ri}">
+          ${r.matchedLines.map(m => renderMatch(m)).join('')}
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function renderMatch(m) {
+    return m.contextLines.map(cl => `
+      <div class="match-item" style="${!cl.isMatch ? 'opacity:0.5' : ''}">
+        <span class="line-num">${cl.lineNo}</span>
+        <span class="line-content">${highlightKeywords(escHtml(cl.text))}</span>
+      </div>
+    `).join('');
+  }
+
+  function highlightKeywords(html) {
+    const kws = [...keywords].sort((a, b) => b.length - a.length);
+    for (const kw of kws) {
+      const flags = caseSensitive ? 'g' : 'gi';
+      const escaped = kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      html = html.replace(new RegExp(escaped, flags), m => `<mark>${m}</mark>`);
+    }
+    return html;
+  }
+
+  function toggleFile(ri) {
+    const ml = document.getElementById('ml' + ri);
+    const fr = document.getElementById('fr' + ri);
+    ml.classList.toggle('collapsed');
+    fr.classList.toggle('collapsed-parent');
+  }
+
+  function filterResults() {
+    const q = document.getElementById('filterInput').value.toLowerCase();
+    if (!q) { renderResults(lastResults); return; }
+    const filtered = lastResults.map(r => ({
+      ...r,
+      matchedLines: r.matchedLines.filter(m => m.text.toLowerCase().includes(q))
+    })).filter(r => r.matchedLines.length > 0 || r.fname.toLowerCase().includes(q));
+    renderResults(filtered);
+  }
+
+  function clearAll() {
+    files.clear();
+    keywords = [];
+    lastResults = [];
+    renderFileChips();
+    renderKeywords();
+    updateSearchBtn();
+    document.getElementById('fileList').innerHTML = '';
+    document.getElementById('statsBar').style.display = 'none';
+    document.getElementById('results').innerHTML = `
+      <div class="empty-state">
+        <div class="icon">📄</div>
+        <p>Upload file và nhập keywords để bắt đầu tìm kiếm</p>
+      </div>`;
+    fileInput.value = '';
+  }
+
+  // ─── Helpers ─────────────────────────────────────────
+  function escHtml(str) {
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+  function escJs(str) { return str.replace(/'/g,"\\'"); }
+</script>
+</body>
+</html>
