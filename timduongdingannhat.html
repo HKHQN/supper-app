@@ -1,777 +1,915 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Thuật toán Dijkstra - Đường đi ngắn nhất</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dijkstra – Đường đi ngắn nhất</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Sora:wght@300;500;700&display=swap" rel="stylesheet">
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
+    :root {
+      --bg: #0d0f14;
+      --surface: #161a23;
+      --surface2: #1e2433;
+      --border: #2a3147;
+      --accent: #00e5a0;
+      --accent2: #3b7bff;
+      --warn: #f59e0b;
+      --danger: #ef4444;
+      --text: #e2e8f0;
+      --muted: #64748b;
+      --node-default: #3b7bff;
+      --node-source: #ef4444;
+      --node-visited: #00e5a0;
+      --edge-default: #2a3147;
+      --edge-highlight: #f59e0b;
+      --radius: 12px;
     }
-    
+    * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      font-family: 'Sora', sans-serif;
+      background: var(--bg);
+      color: var(--text);
       min-height: 100vh;
-      padding: 20px;
+      display: flex;
+      flex-direction: column;
     }
 
-    .graph-container {
-      background: white;
-      border-radius: 20px;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    /* HEADER */
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    header .logo {
+      width: 36px; height: 36px;
+      background: var(--accent);
+      border-radius: 8px;
+      display: grid; place-items: center;
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 700;
+      color: #000;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+    header h1 {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: -0.3px;
+    }
+    header p { font-size: 12px; color: var(--muted); }
+    header .status {
+      margin-left: auto;
+      display: flex; align-items: center; gap: 8px;
+      font-size: 12px; color: var(--muted);
+    }
+    header .dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--muted);
+      transition: background .3s;
+    }
+    header .dot.online { background: var(--accent); box-shadow: 0 0 6px var(--accent); }
+
+    /* LAYOUT */
+    main {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 320px;
+      gap: 0;
       overflow: hidden;
-      max-width: 1400px;
-      margin: 0 auto;
     }
 
-    canvas {
+    /* CANVAS AREA */
+    .canvas-area {
+      display: flex; flex-direction: column;
+      border-right: 1px solid var(--border);
+      overflow: hidden;
+    }
+    .canvas-toolbar {
+      padding: 12px 16px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+    }
+    .btn {
+      padding: 7px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-family: 'Sora', sans-serif;
+      font-weight: 500;
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: all .15s;
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .btn:hover { transform: translateY(-1px); }
+    .btn-accent { background: var(--accent); color: #000; }
+    .btn-accent:hover { background: #00ffb3; }
+    .btn-blue { background: var(--accent2); color: #fff; }
+    .btn-blue:hover { background: #5591ff; }
+    .btn-purple { background: #8b5cf6; color: #fff; }
+    .btn-purple:hover { background: #a78bfa; }
+    .btn-red { background: transparent; color: var(--danger); border-color: var(--danger); }
+    .btn-red:hover { background: var(--danger); color: #fff; }
+    .btn-ghost { background: transparent; color: var(--muted); border-color: var(--border); }
+    .btn-ghost:hover { color: var(--text); border-color: var(--muted); }
+    .btn.active-mode {
+      outline: 2px solid var(--warn);
+      outline-offset: 2px;
+    }
+
+    .canvas-wrap {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+    }
+    #canvas {
+      width: 100%; height: 100%;
       display: block;
+      cursor: crosshair;
+    }
+
+    .mode-badge {
+      position: absolute;
+      top: 12px; left: 50%; transform: translateX(-50%);
+      background: var(--warn);
+      color: #000;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 4px 14px;
+      border-radius: 999px;
+      pointer-events: none;
+      display: none;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .mode-badge.visible { display: block; }
+
+    /* RESULT BOX */
+    .result-box {
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      padding: 12px 16px;
+      max-height: 180px;
+      overflow-y: auto;
+      font-size: 13px;
+    }
+    .result-box h4 {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--muted);
+      margin-bottom: 8px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .result-row {
+      display: flex; align-items: baseline; gap: 10px;
+      padding: 5px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .result-row:last-child { border-bottom: none; }
+    .result-node { font-weight: 700; color: var(--accent); min-width: 24px; }
+    .result-dist { font-family: 'JetBrains Mono', monospace; color: var(--warn); min-width: 36px; }
+    .result-path { color: var(--muted); font-size: 12px; }
+    .result-inf { color: var(--danger); }
+
+    /* SIDEBAR */
+    .sidebar {
+      display: flex; flex-direction: column;
+      overflow: hidden;
+      background: var(--surface);
+    }
+    .sidebar-section {
+      border-bottom: 1px solid var(--border);
+      padding: 16px;
+    }
+    .sidebar-section h3 {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--muted);
+      margin-bottom: 12px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .source-select {
       width: 100%;
-      height: auto;
-      background: #f8fafc;
-      border-radius: 12px;
+      padding: 9px 12px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: 'Sora', sans-serif;
+      font-size: 14px;
+      appearance: none;
       cursor: pointer;
     }
+    .source-select:focus { outline: 2px solid var(--accent); border-color: transparent; }
 
-    .node {
-      transition: all 0.3s ease;
+    .node-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
     }
-
-    .btn {
-      transition: all 0.2s ease;
-      font-weight: 500;
-    }
-
-    .btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-    }
-
-    .result-card {
-      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-      color: white;
-      padding: 15px;
-      border-radius: 10px;
+    .node-list h3 {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--muted);
       margin-bottom: 10px;
+      font-family: 'JetBrains Mono', monospace;
     }
-
-    .modal {
-      background: rgba(0,0,0,0.5);
-      backdrop-filter: blur(5px);
+    .node-item {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 8px 10px;
+      border-radius: 8px;
+      background: var(--surface2);
+      margin-bottom: 6px;
+      border: 1px solid var(--border);
+      font-size: 13px;
     }
-
-    .input-field {
-      border: 2px solid #e2e8f0;
-      transition: all 0.3s ease;
+    .node-item .name {
+      font-weight: 700;
+      color: var(--accent2);
+      font-family: 'JetBrains Mono', monospace;
     }
+    .node-item .coords { font-size: 11px; color: var(--muted); }
+    .node-item .actions { display: flex; gap: 4px; }
+    .icon-btn {
+      padding: 4px 8px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      font-size: 12px;
+      transition: .15s;
+    }
+    .icon-btn.edit { background: rgba(59,123,255,.15); color: var(--accent2); }
+    .icon-btn.edit:hover { background: var(--accent2); color: #fff; }
+    .icon-btn.del { background: rgba(239,68,68,.15); color: var(--danger); }
+    .icon-btn.del:hover { background: var(--danger); color: #fff; }
 
-    .input-field:focus {
-      border-color: #667eea;
-      outline: none;
-      box-shadow: 0 0 0 3px rgba(102,126,234,0.1);
+    .edge-list { margin-top: 12px; }
+    .edge-list h3 {
+      font-size: 11px; text-transform: uppercase; letter-spacing: 1px;
+      color: var(--muted); margin-bottom: 10px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .edge-item {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 7px 10px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin-bottom: 5px;
+      font-size: 12px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .edge-item .route { color: var(--text); }
+    .edge-item .w { color: var(--warn); font-weight: 700; }
+    .edge-item .del { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 14px; }
+    .edge-item .del:hover { color: var(--danger); }
+
+    /* MODAL */
+    #modal {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.75);
+      z-index: 100;
+      place-items: center;
+    }
+    #modal.open { display: grid; }
+    .modal-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px;
+      width: 100%;
+      max-width: 400px;
+      margin: 16px;
+      box-shadow: 0 32px 64px rgba(0,0,0,.5);
+    }
+    .modal-box h3 {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 20px;
+      color: var(--accent);
+    }
+    .field { margin-bottom: 14px; }
+    .field label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+    .field input, .field select {
+      width: 100%;
+      padding: 9px 12px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: 'Sora', sans-serif;
+      font-size: 14px;
+    }
+    .field input:focus, .field select:focus {
+      outline: 2px solid var(--accent);
+      border-color: transparent;
+    }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
+
+    /* SCROLLBAR */
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+    /* Empty states */
+    .empty { color: var(--muted); font-size: 12px; text-align: center; padding: 16px; }
+
+    @media (max-width: 768px) {
+      main { grid-template-columns: 1fr; grid-template-rows: 1fr auto; }
+      .canvas-area { min-height: 50vh; }
+      .sidebar { max-height: 50vh; overflow-y: auto; }
     }
   </style>
 </head>
 <body>
-  <div class="graph-container">
-    <!-- Header -->
-    <div class="bg-gradient-to-r from-purple-600 to-indigo-600 text-white p-6">
-      <div class="flex justify-between items-center">
-        <div>
-          <h1 class="text-3xl font-bold mb-2">📊 Thuật toán Dijkstra</h1>
-          <p class="opacity-90">Tìm đường đi ngắn nhất từ một đỉnh đến tất cả các đỉnh còn lại</p>
-        </div>
-        <div class="flex gap-2">
-          <button id="themeToggle" class="px-4 py-2 bg-white/20 rounded-lg hover:bg-white/30 transition">
-            🌓 Chế độ tối
-          </button>
-        </div>
-      </div>
+
+<header>
+  <div class="logo">DJ</div>
+  <div>
+    <h1>Dijkstra Shortest Path</h1>
+    <p>Nghiên cứu đường đi ngắn nhất trên đồ thị</p>
+  </div>
+  <div class="status">
+    <div class="dot" id="statusDot"></div>
+    <span id="statusText">Đang kết nối...</span>
+  </div>
+</header>
+
+<main>
+  <!-- LEFT: Canvas + controls -->
+  <div class="canvas-area">
+    <div class="canvas-toolbar">
+      <button class="btn btn-accent" id="btnAddNode">＋ Thêm đỉnh</button>
+      <button class="btn btn-blue" id="btnAddEdge">⟶ Thêm cạnh</button>
+      <button class="btn btn-purple" id="btnRun">▶ Chạy Dijkstra</button>
+      <button class="btn btn-ghost" id="btnResetView">↺ Đặt lại</button>
+      <button class="btn btn-red" id="btnClear">✕ Xóa tất cả</button>
     </div>
 
-    <!-- Main Content -->
-    <div class="p-6">
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <!-- Canvas Area -->
-        <div class="lg:col-span-2">
-          <div class="bg-gray-50 rounded-xl p-4 shadow-inner">
-            <canvas id="graphCanvas" width="1000" height="600"></canvas>
-          </div>
+    <div class="canvas-wrap">
+      <canvas id="canvas"></canvas>
+      <div class="mode-badge" id="modeBadge">CHẾ ĐỘ THÊM CẠNH</div>
+    </div>
 
-          <!-- Control Buttons -->
-          <div class="flex flex-wrap gap-3 mt-4">
-            <button id="addNodeBtn" class="btn bg-green-500 text-white px-6 py-3 rounded-lg shadow-md hover:bg-green-600 flex items-center gap-2">
-              <span class="text-xl">➕</span> Thêm đỉnh
-            </button>
-            <button id="addEdgeBtn" class="btn bg-blue-500 text-white px-6 py-3 rounded-lg shadow-md hover:bg-blue-600 flex items-center gap-2">
-              <span class="text-xl">🔗</span> Thêm cạnh
-            </button>
-            <button id="runDijkstraBtn" class="btn bg-purple-500 text-white px-6 py-3 rounded-lg shadow-md hover:bg-purple-600 flex items-center gap-2">
-              <span class="text-xl">▶️</span> Chạy Dijkstra
-            </button>
-            <button id="resetBtn" class="btn bg-red-500 text-white px-6 py-3 rounded-lg shadow-md hover:bg-red-600 flex items-center gap-2">
-              <span class="text-xl">🔄</span> Reset
-            </button>
-          </div>
-        </div>
-
-        <!-- Right Panel -->
-        <div class="space-y-6">
-          <!-- Node List -->
-          <div class="bg-white rounded-xl shadow-lg p-5">
-            <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
-              <span class="w-2 h-8 bg-purple-500 rounded-full"></span>
-              Danh sách đỉnh
-            </h2>
-            <div id="nodeList" class="space-y-2 max-h-60 overflow-y-auto"></div>
-          </div>
-
-          <!-- Dijkstra Controls -->
-          <div class="bg-white rounded-xl shadow-lg p-5">
-            <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
-              <span class="w-2 h-8 bg-blue-500 rounded-full"></span>
-              Điều khiển Dijkstra
-            </h2>
-            <div class="space-y-4">
-              <select id="sourceNode" class="input-field w-full p-3 rounded-lg">
-                <option value="">Chọn đỉnh nguồn...</option>
-              </select>
-              <button id="visualizeBtn" class="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white py-3 rounded-lg font-semibold hover:from-purple-600 hover:to-pink-600 transition">
-                🎯 Tìm đường đi ngắn nhất
-              </button>
-            </div>
-          </div>
-
-          <!-- Results -->
-          <div class="bg-white rounded-xl shadow-lg p-5">
-            <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
-              <span class="w-2 h-8 bg-green-500 rounded-full"></span>
-              Kết quả
-            </h2>
-            <div id="resultContainer" class="space-y-3 max-h-80 overflow-y-auto"></div>
-          </div>
-        </div>
-      </div>
+    <div class="result-box" id="resultBox">
+      <h4>KẾT QUẢ DIJKSTRA</h4>
+      <div class="empty">Chọn đỉnh nguồn và nhấn "Chạy Dijkstra" để xem kết quả.</div>
     </div>
   </div>
 
-  <!-- Modal -->
-  <div id="modal" class="modal fixed inset-0 hidden items-center justify-center z-50">
-    <div class="bg-white rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl transform transition-all">
-      <h3 id="modalTitle" class="text-2xl font-bold mb-6 text-gray-800">Thêm đỉnh mới</h3>
-      <form id="nodeForm" class="space-y-5">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">Tên đỉnh</label>
-          <input type="text" id="nodeName" maxlength="3" class="input-field w-full p-3 rounded-lg" placeholder="VD: A, B, 1, 2..." required>
-        </div>
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Tọa độ X</label>
-            <input type="number" id="nodeX" min="50" max="950" value="200" class="input-field w-full p-3 rounded-lg">
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Tọa độ Y</label>
-            <input type="number" id="nodeY" min="50" max="550" value="200" class="input-field w-full p-3 rounded-lg">
-          </div>
-        </div>
-        <div class="flex justify-end gap-3 pt-4">
-          <button type="button" id="cancelModal" class="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition">Hủy</button>
-          <button type="submit" class="px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-lg hover:from-green-600 hover:to-emerald-600 transition">Lưu</button>
-        </div>
-      </form>
-
-      <form id="edgeForm" class="space-y-5 hidden">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">Đỉnh bắt đầu</label>
-          <select id="edgeFrom" class="input-field w-full p-3 rounded-lg" required>
-            <option value="">Chọn đỉnh...</option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">Đỉnh kết thúc</label>
-          <select id="edgeTo" class="input-field w-full p-3 rounded-lg" required>
-            <option value="">Chọn đỉnh...</option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">Trọng số</label>
-          <input type="number" id="edgeWeight" min="1" max="100" value="1" class="input-field w-full p-3 rounded-lg" required>
-        </div>
-        <div class="flex justify-end gap-3 pt-4">
-          <button type="button" id="cancelEdgeModal" class="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition">Hủy</button>
-          <button type="submit" class="px-6 py-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-lg hover:from-blue-600 hover:to-cyan-600 transition">Thêm cạnh</button>
-        </div>
-      </form>
+  <!-- RIGHT: Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-section">
+      <h3>Đỉnh nguồn</h3>
+      <select class="source-select" id="sourceSelect">
+        <option value="">Chọn đỉnh nguồn...</option>
+      </select>
+    </div>
+    <div class="node-list" id="nodeList">
+      <h3>Đỉnh (0)</h3>
+      <div class="empty">Chưa có đỉnh nào. Nhấn "+ Thêm đỉnh".</div>
+      <div class="edge-list">
+        <h3>Cạnh (0)</h3>
+        <div class="empty">Chưa có cạnh nào.</div>
+      </div>
     </div>
   </div>
+</main>
 
-  <script>
-    // Graph data structure
-    class Graph {
-      constructor() {
-        this.nodes = new Map(); // nodeId -> {x, y, label}
-        this.edges = new Map(); // edgeId -> {from, to, weight}
-        this.adjacencyList = new Map(); // nodeId -> [{to, weight, edgeId}]
-      }
+<!-- MODAL -->
+<div id="modal">
+  <div class="modal-box">
+    <h3 id="modalTitle">Thêm đỉnh</h3>
+    <form id="modalForm" autocomplete="off">
+      <input type="hidden" id="editType">
+      <input type="hidden" id="editId">
 
-      addNode(id, x, y, label) {
-        if (this.nodes.has(id)) return false;
-        this.nodes.set(id, { x, y, label });
-        this.adjacencyList.set(id, []);
-        return true;
-      }
+      <div id="nodeFields">
+        <div class="field">
+          <label>Tên đỉnh (A, B, 1, 2…)</label>
+          <input type="text" id="nodeName" maxlength="5" placeholder="VD: A">
+        </div>
+        <div class="field">
+          <label>Tọa độ X</label>
+          <input type="number" id="nx" min="30" max="760" value="100">
+        </div>
+        <div class="field">
+          <label>Tọa độ Y</label>
+          <input type="number" id="ny" min="30" max="460" value="100">
+        </div>
+      </div>
 
-      removeNode(id) {
-        if (!this.nodes.has(id)) return;
-        
-        // Remove all edges connected to this node
-        const edgesToRemove = [];
-        this.edges.forEach((edge, edgeId) => {
-          if (edge.from === id || edge.to === id) {
-            edgesToRemove.push(edgeId);
-          }
-        });
-        edgesToRemove.forEach(edgeId => this.removeEdge(edgeId));
-        
-        this.nodes.delete(id);
-        this.adjacencyList.delete(id);
-      }
+      <div id="edgeFields" style="display:none">
+        <div class="field">
+          <label>Từ đỉnh</label>
+          <select id="edgeFrom"></select>
+        </div>
+        <div class="field">
+          <label>Đến đỉnh</label>
+          <select id="edgeTo"></select>
+        </div>
+        <div class="field">
+          <label>Trọng số</label>
+          <input type="number" id="edgeWeight" min="1" max="9999" value="1">
+        </div>
+      </div>
 
-      addEdge(from, to, weight) {
-        if (!this.nodes.has(from) || !this.nodes.has(to)) return null;
-        if (from === to) return null;
-        
-        const edgeId = `${from}-${to}-${Date.now()}`;
-        this.edges.set(edgeId, { from, to, weight });
-        
-        // Add to adjacency list (undirected graph)
-        this.adjacencyList.get(from).push({ to, weight, edgeId });
-        this.adjacencyList.get(to).push({ to: from, weight, edgeId });
-        
-        return edgeId;
-      }
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" id="btnCancel">Hủy</button>
+        <button type="submit" class="btn btn-accent">Lưu</button>
+      </div>
+    </form>
+  </div>
+</div>
 
-      removeEdge(edgeId) {
-        if (!this.edges.has(edgeId)) return;
-        
-        const edge = this.edges.get(edgeId);
-        
-        // Remove from adjacency lists
-        this.adjacencyList.set(edge.from, 
-          this.adjacencyList.get(edge.from).filter(e => e.edgeId !== edgeId));
-        this.adjacencyList.set(edge.to, 
-          this.adjacencyList.get(edge.to).filter(e => e.edgeId !== edgeId));
-        
-        this.edges.delete(edgeId);
-      }
+<!-- Firebase -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
 
-      dijkstra(startId) {
-        if (!this.nodes.has(startId)) return null;
+// ── Firebase ──────────────────────────────────────────────────────────
+const app = initializeApp({ databaseURL: "https://supperdatabase-default-rtdb.firebaseio.com/" });
+const db  = getDatabase(app);
+const ROOT = ref(db, 'dijkstra_v2');
 
-        const distances = new Map();
-        const previous = new Map();
-        const unvisited = new Set(this.nodes.keys());
-        
-        // Initialize
-        this.nodes.forEach((_, id) => {
-          distances.set(id, Infinity);
-          previous.set(id, null);
-        });
-        distances.set(startId, 0);
+const statusDot  = document.getElementById('statusDot');
+const statusText = document.getElementById('statusText');
 
-        while (unvisited.size > 0) {
-          // Find node with minimum distance
-          let minNode = null;
-          let minDist = Infinity;
-          unvisited.forEach(id => {
-            if (distances.get(id) < minDist) {
-              minDist = distances.get(id);
-              minNode = id;
-            }
-          });
+// ── State ─────────────────────────────────────────────────────────────
+// nodes: { id: { name, x, y } }
+// edges: [ { id, from, to, weight } ]
+let nodes = {};
+let edges = [];
+let mode  = 'select'; // 'select' | 'addEdge'
+let edgeStart = null; // node id
+let highlightNodes = new Set();
+let highlightEdges = new Set(); // edge ids
+let dijkstraRan = false;
 
-          if (minNode === null || minDist === Infinity) break;
-          unvisited.delete(minNode);
+// ── Canvas ────────────────────────────────────────────────────────────
+const canvas = document.getElementById('canvas');
+const ctx    = canvas.getContext('2d');
+const NODE_R = 20;
 
-          // Update neighbors
-          const neighbors = this.adjacencyList.get(minNode) || [];
-          neighbors.forEach(neighbor => {
-            if (unvisited.has(neighbor.to)) {
-              const alt = distances.get(minNode) + neighbor.weight;
-              if (alt < distances.get(neighbor.to)) {
-                distances.set(neighbor.to, alt);
-                previous.set(neighbor.to, minNode);
-              }
-            }
-          });
-        }
+function resizeCanvas() {
+  const wrap = canvas.parentElement;
+  canvas.width  = wrap.clientWidth;
+  canvas.height = wrap.clientHeight;
+  draw();
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
 
-        return { distances, previous };
-      }
+// ── Draw ──────────────────────────────────────────────────────────────
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      getPath(previous, target) {
-        const path = [];
-        let current = target;
-        while (current !== null) {
-          path.unshift(current);
-          current = previous.get(current);
-        }
-        return path;
-      }
+  // Grid dots
+  ctx.fillStyle = 'rgba(255,255,255,0.03)';
+  for (let x = 20; x < canvas.width; x += 40)
+    for (let y = 20; y < canvas.height; y += 40)
+      ctx.fillRect(x, y, 2, 2);
 
-      clear() {
-        this.nodes.clear();
-        this.edges.clear();
-        this.adjacencyList.clear();
-      }
+  // Edges
+  edges.forEach(e => {
+    const from = nodes[e.from];
+    const to   = nodes[e.to];
+    if (!from || !to) return;
 
-      toJSON() {
-        return {
-          nodes: Array.from(this.nodes.entries()),
-          edges: Array.from(this.edges.entries())
-        };
-      }
+    const isHighlight = highlightEdges.has(e.id);
+    ctx.beginPath();
+    ctx.moveTo(from.x, from.y);
+    ctx.lineTo(to.x, to.y);
+    ctx.strokeStyle = isHighlight ? '#f59e0b' : 'rgba(255,255,255,0.12)';
+    ctx.lineWidth   = isHighlight ? 3.5 : 1.5;
+    ctx.stroke();
 
-      loadFromJSON(data) {
-        this.clear();
-        data.nodes.forEach(([id, node]) => this.addNode(id, node.x, node.y, node.label));
-        data.edges.forEach(([edgeId, edge]) => this.addEdge(edge.from, edge.to, edge.weight));
-      }
+    // Arrowhead
+    const angle = Math.atan2(to.y - from.y, to.x - from.x);
+    const ax = to.x - (NODE_R + 5) * Math.cos(angle);
+    const ay = to.y - (NODE_R + 5) * Math.sin(angle);
+    ctx.beginPath();
+    ctx.moveTo(ax, ay);
+    ctx.lineTo(ax - 10 * Math.cos(angle - 0.4), ay - 10 * Math.sin(angle - 0.4));
+    ctx.lineTo(ax - 10 * Math.cos(angle + 0.4), ay - 10 * Math.sin(angle + 0.4));
+    ctx.closePath();
+    ctx.fillStyle = isHighlight ? '#f59e0b' : 'rgba(255,255,255,0.2)';
+    ctx.fill();
+
+    // Weight label
+    const mx = (from.x + to.x) / 2;
+    const my = (from.y + to.y) / 2;
+    const perp = Math.atan2(to.y - from.y, to.x - from.x) + Math.PI / 2;
+    const lx = mx + 14 * Math.cos(perp);
+    const ly = my + 14 * Math.sin(perp);
+    ctx.font = 'bold 12px JetBrains Mono, monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = isHighlight ? '#f59e0b' : 'rgba(255,255,255,0.5)';
+    ctx.fillText(e.weight, lx, ly);
+  });
+
+  // Nodes
+  Object.values(nodes).forEach(n => {
+    const sourceId = document.getElementById('sourceSelect').value;
+    const isSource  = n.id === sourceId;
+    const isVisited = highlightNodes.has(n.id);
+    const isEdgeStart = n.id === edgeStart;
+
+    // Glow
+    if (isSource || isVisited || isEdgeStart) {
+      const glowColor = isEdgeStart ? '#f59e0b' : isSource ? '#ef4444' : '#00e5a0';
+      const grad = ctx.createRadialGradient(n.x, n.y, 5, n.x, n.y, 38);
+      grad.addColorStop(0, glowColor + '55');
+      grad.addColorStop(1, 'transparent');
+      ctx.beginPath();
+      ctx.arc(n.x, n.y, 38, 0, Math.PI * 2);
+      ctx.fillStyle = grad;
+      ctx.fill();
     }
 
-    // Main application
-    const graph = new Graph();
-    const canvas = document.getElementById('graphCanvas');
-    const ctx = canvas.getContext('2d');
-    const modal = document.getElementById('modal');
-    const nodeForm = document.getElementById('nodeForm');
-    const edgeForm = document.getElementById('edgeForm');
-    
-    let mode = 'view'; // 'view', 'add-node', 'add-edge'
-    let selectedNode = null;
-    let highlightedPath = [];
-    let darkMode = false;
+    // Circle
+    ctx.beginPath();
+    ctx.arc(n.x, n.y, NODE_R, 0, Math.PI * 2);
+    let fill = '#3b7bff';
+    if (isEdgeStart) fill = '#f59e0b';
+    else if (isSource) fill = '#ef4444';
+    else if (isVisited) fill = '#00e5a0';
 
-    // Initialize with sample data
-    function initializeSample() {
-      graph.clear();
-      graph.addNode('A', 200, 200, 'A');
-      graph.addNode('B', 400, 150, 'B');
-      graph.addNode('C', 600, 250, 'C');
-      graph.addNode('D', 500, 400, 'D');
-      graph.addNode('E', 300, 350, 'E');
-      
-      graph.addEdge('A', 'B', 4);
-      graph.addEdge('A', 'E', 7);
-      graph.addEdge('B', 'C', 3);
-      graph.addEdge('B', 'E', 2);
-      graph.addEdge('C', 'D', 5);
-      graph.addEdge('D', 'E', 4);
-      
-      updateUI();
+    ctx.fillStyle = fill;
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Label
+    ctx.fillStyle = isVisited && !isSource ? '#000' : '#fff';
+    ctx.font = 'bold 13px Sora, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(n.name, n.x, n.y);
+  });
+}
+
+// ── Canvas interaction ────────────────────────────────────────────────
+function getNodeAt(x, y) {
+  return Object.values(nodes).find(n => {
+    const dx = n.x - x, dy = n.y - y;
+    return dx*dx + dy*dy <= NODE_R * NODE_R;
+  });
+}
+
+canvas.addEventListener('click', e => {
+  const rect = canvas.getBoundingClientRect();
+  const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+  const y = (e.clientY - rect.top)  * (canvas.height / rect.height);
+
+  if (mode === 'addEdge') {
+    const node = getNodeAt(x, y);
+    if (!node) return;
+    if (!edgeStart) {
+      edgeStart = node.id;
       draw();
+      return;
     }
+    if (edgeStart === node.id) {
+      edgeStart = null; draw(); return;
+    }
+    // Open modal to confirm weight
+    openEdgeModal(edgeStart, node.id);
+    edgeStart = null;
+    return;
+  }
+});
 
-    // Drawing functions
-    function draw() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      
-      // Draw grid (for better visualization)
-      ctx.strokeStyle = darkMode ? '#334155' : '#e2e8f0';
-      ctx.lineWidth = 1;
-      for (let i = 0; i < canvas.width; i += 50) {
-        ctx.beginPath();
-        ctx.moveTo(i, 0);
-        ctx.lineTo(i, canvas.height);
-        ctx.strokeStyle = darkMode ? '#334155' : '#e2e8f0';
-        ctx.stroke();
+canvas.addEventListener('dblclick', e => {
+  if (mode !== 'select') return;
+  const rect = canvas.getBoundingClientRect();
+  const x = Math.round((e.clientX - rect.left) * (canvas.width / rect.width));
+  const y = Math.round((e.clientY - rect.top)  * (canvas.height / rect.height));
+  const existing = getNodeAt(x, y);
+  if (existing) {
+    openNodeModal(existing);
+  } else {
+    openNodeModal(null, x, y);
+  }
+});
+
+// ── Modes ──────────────────────────────────────────────────────────────
+const modeBadge = document.getElementById('modeBadge');
+
+document.getElementById('btnAddNode').onclick = () => openNodeModal(null, 100, 100);
+
+document.getElementById('btnAddEdge').onclick = () => {
+  mode = mode === 'addEdge' ? 'select' : 'addEdge';
+  edgeStart = null;
+  document.getElementById('btnAddEdge').classList.toggle('active-mode', mode === 'addEdge');
+  modeBadge.classList.toggle('visible', mode === 'addEdge');
+  canvas.style.cursor = mode === 'addEdge' ? 'crosshair' : 'default';
+  draw();
+};
+
+document.getElementById('btnResetView').onclick = () => {
+  highlightNodes.clear();
+  highlightEdges.clear();
+  dijkstraRan = false;
+  document.getElementById('resultBox').innerHTML = '<h4>KẾT QUẢ DIJKSTRA</h4><div class="empty">Chọn đỉnh nguồn và nhấn "Chạy Dijkstra".</div>';
+  draw();
+};
+
+document.getElementById('btnClear').onclick = () => {
+  if (!confirm('Xóa toàn bộ đồ thị? Hành động này không thể hoàn tác.')) return;
+  nodes = {}; edges = [];
+  highlightNodes.clear(); highlightEdges.clear();
+  saveGraph();
+};
+
+// ── Modal helpers ─────────────────────────────────────────────────────
+const modal      = document.getElementById('modal');
+const modalTitle = document.getElementById('modalTitle');
+const modalForm  = document.getElementById('modalForm');
+
+function openNodeModal(node, defaultX, defaultY) {
+  document.getElementById('editType').value = 'node';
+  document.getElementById('editId').value   = node ? node.id : '';
+  document.getElementById('nodeName').value = node ? node.name : '';
+  document.getElementById('nx').value       = node ? node.x : (defaultX ?? 100);
+  document.getElementById('ny').value       = node ? node.y : (defaultY ?? 100);
+  document.getElementById('nodeFields').style.display = '';
+  document.getElementById('edgeFields').style.display = 'none';
+  modalTitle.textContent = node ? `Sửa đỉnh ${node.name}` : 'Thêm đỉnh mới';
+  modal.classList.add('open');
+  document.getElementById('nodeName').focus();
+}
+
+function openEdgeModal(fromId, toId) {
+  const nodeKeys = Object.keys(nodes);
+  if (nodeKeys.length < 2) return;
+
+  // Populate selects
+  const fromSel = document.getElementById('edgeFrom');
+  const toSel   = document.getElementById('edgeTo');
+  fromSel.innerHTML = '';
+  toSel.innerHTML   = '';
+  Object.values(nodes).forEach(n => {
+    fromSel.insertAdjacentHTML('beforeend', `<option value="${n.id}" ${n.id===fromId?'selected':''}>${n.name}</option>`);
+    toSel.insertAdjacentHTML('beforeend',   `<option value="${n.id}" ${n.id===toId?'selected':''}>${n.name}</option>`);
+  });
+  document.getElementById('edgeWeight').value = 1;
+  document.getElementById('editType').value = 'edge';
+  document.getElementById('editId').value = '';
+  document.getElementById('nodeFields').style.display = 'none';
+  document.getElementById('edgeFields').style.display = '';
+  modalTitle.textContent = 'Thêm cạnh';
+  modal.classList.add('open');
+  document.getElementById('edgeWeight').focus();
+}
+
+document.getElementById('btnCancel').onclick = closeModal;
+modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
+function closeModal() {
+  modal.classList.remove('open');
+  document.getElementById('modalForm').reset();
+}
+
+// ── Form submit ───────────────────────────────────────────────────────
+modalForm.addEventListener('submit', e => {
+  e.preventDefault();
+  const type = document.getElementById('editType').value;
+
+  if (type === 'node') {
+    const rawName = document.getElementById('nodeName').value.trim();
+    if (!rawName) return alert('Tên đỉnh không được để trống.');
+    const name = rawName.toUpperCase();
+    const x    = Number(document.getElementById('nx').value);
+    const y    = Number(document.getElementById('ny').value);
+    const id   = document.getElementById('editId').value || generateId();
+
+    // Check duplicate name (ignoring own id on edit)
+    const dup = Object.values(nodes).find(n => n.name === name && n.id !== id);
+    if (dup) return alert(`Đã tồn tại đỉnh tên "${name}".`);
+
+    nodes[id] = { id, name, x, y };
+    saveGraph();
+  }
+
+  if (type === 'edge') {
+    const from   = document.getElementById('edgeFrom').value;
+    const to     = document.getElementById('edgeTo').value;
+    const weight = Number(document.getElementById('edgeWeight').value);
+
+    if (from === to) return alert('Đỉnh nguồn và đích không được trùng nhau.');
+    if (!weight || weight < 1) return alert('Trọng số phải ≥ 1.');
+
+    // Prevent duplicate edge
+    const dup = edges.find(e => e.from === from && e.to === to);
+    if (dup) {
+      if (!confirm(`Đã có cạnh ${nodes[from]?.name}→${nodes[to]?.name}. Ghi đè trọng số?`)) return;
+      dup.weight = weight;
+    } else {
+      edges.push({ id: generateId(), from, to, weight });
+    }
+    saveGraph();
+  }
+
+  closeModal();
+});
+
+// ── Delete helpers ────────────────────────────────────────────────────
+window.deleteNode = id => {
+  if (!confirm(`Xóa đỉnh "${nodes[id]?.name}" và tất cả cạnh liên quan?`)) return;
+  delete nodes[id];
+  edges = edges.filter(e => e.from !== id && e.to !== id);
+  saveGraph();
+};
+
+window.deleteEdge = id => {
+  edges = edges.filter(e => e.id !== id);
+  saveGraph();
+};
+
+window.editNode = id => openNodeModal(nodes[id]);
+
+// ── Dijkstra ──────────────────────────────────────────────────────────
+document.getElementById('btnRun').onclick = () => {
+  const srcId = document.getElementById('sourceSelect').value;
+  if (!srcId) return alert('Vui lòng chọn đỉnh nguồn!');
+  if (Object.keys(nodes).length === 0) return alert('Đồ thị chưa có đỉnh nào.');
+
+  const dist = {};
+  const prev = {};
+  const visited = new Set();
+
+  Object.keys(nodes).forEach(id => dist[id] = Infinity);
+  dist[srcId] = 0;
+
+  const unvisited = new Set(Object.keys(nodes));
+
+  while (unvisited.size > 0) {
+    // Pick min
+    let u = null;
+    unvisited.forEach(id => {
+      if (u === null || dist[id] < dist[u]) u = id;
+    });
+    if (u === null || dist[u] === Infinity) break;
+    unvisited.delete(u);
+    visited.add(u);
+
+    // Neighbors
+    edges.filter(e => e.from === u).forEach(e => {
+      const alt = dist[u] + Number(e.weight);
+      if (alt < dist[e.to]) {
+        dist[e.to] = alt;
+        prev[e.to] = u;
       }
-      for (let i = 0; i < canvas.height; i += 50) {
-        ctx.beginPath();
-        ctx.moveTo(0, i);
-        ctx.lineTo(canvas.width, i);
-        ctx.stroke();
-      }
+    });
+  }
 
-      // Draw edges
-      graph.edges.forEach(edge => {
-        const fromNode = graph.nodes.get(edge.from);
-        const toNode = graph.nodes.get(edge.to);
-        if (!fromNode || !toNode) return;
+  // Build result & highlight
+  highlightNodes.clear();
+  highlightEdges.clear();
 
-        const isHighlighted = highlightedPath.some((node, index) => 
-          index < highlightedPath.length - 1 && 
-          ((node === edge.from && highlightedPath[index + 1] === edge.to) ||
-           (node === edge.to && highlightedPath[index + 1] === edge.from))
-        );
-
-        ctx.beginPath();
-        ctx.moveTo(fromNode.x, fromNode.y);
-        ctx.lineTo(toNode.x, toNode.y);
-        ctx.strokeStyle = isHighlighted ? '#f59e0b' : (darkMode ? '#94a3b8' : '#64748b');
-        ctx.lineWidth = isHighlighted ? 4 : 2;
-        ctx.stroke();
-
-        // Draw weight
-        const midX = (fromNode.x + toNode.x) / 2;
-        const midY = (fromNode.y + toNode.y) / 2;
-        
-        ctx.fillStyle = darkMode ? '#f1f5f9' : '#1e293b';
-        ctx.font = 'bold 14px Arial';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        
-        // Background for weight
-        ctx.fillStyle = darkMode ? '#1e293b' : '#ffffff';
-        ctx.fillRect(midX - 15, midY - 12, 30, 24);
-        
-        ctx.fillStyle = darkMode ? '#f1f5f9' : '#1e293b';
-        ctx.fillText(edge.weight, midX, midY);
-      });
-
-      // Draw nodes
-      graph.nodes.forEach((node, id) => {
-        ctx.beginPath();
-        ctx.arc(node.x, node.y, 25, 0, Math.PI * 2);
-        
-        // Node color
-        if (id === selectedNode) {
-          ctx.fillStyle = '#f59e0b';
-        } else if (highlightedPath.includes(id)) {
-          ctx.fillStyle = '#10b981';
-        } else {
-          ctx.fillStyle = darkMode ? '#3b82f6' : '#3b82f6';
-        }
-        
-        ctx.fill();
-        ctx.strokeStyle = darkMode ? '#ffffff' : '#1e293b';
-        ctx.lineWidth = 2;
-        ctx.stroke();
-
-        // Node label
-        ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 16px Arial';
-        ctx.fillText(node.label, node.x, node.y);
-      });
-
-      // Mode indicator
-      if (mode === 'add-node') {
-        ctx.fillStyle = darkMode ? '#ffffff' : '#000000';
-        ctx.font = '14px Arial';
-        ctx.fillText('🖱️ Chế độ thêm đỉnh: Click vào vị trí muốn thêm', 20, 30);
-      } else if (mode === 'add-edge') {
-        ctx.fillStyle = darkMode ? '#ffffff' : '#000000';
-        ctx.font = '14px Arial';
-        ctx.fillText('🔗 Chế độ thêm cạnh: Click vào đỉnh bắt đầu và kết thúc', 20, 30);
+  // Reconstruct path edges for all reachable nodes
+  Object.keys(nodes).forEach(id => {
+    if (dist[id] < Infinity) {
+      highlightNodes.add(id);
+      let cur = id;
+      while (prev[cur]) {
+        const p = prev[cur];
+        const e = edges.find(e => e.from === p && e.to === cur);
+        if (e) highlightEdges.add(e.id);
+        cur = p;
       }
     }
+  });
 
-    // Update UI lists
-    function updateUI() {
-      // Update node list
-      const nodeList = document.getElementById('nodeList');
-      nodeList.innerHTML = '';
-      
-      if (graph.nodes.size === 0) {
-        nodeList.innerHTML = '<p class="text-gray-500 text-center py-4">Chưa có đỉnh nào</p>';
-      } else {
-        graph.nodes.forEach((node, id) => {
-          const nodeDiv = document.createElement('div');
-          nodeDiv.className = 'bg-gray-50 rounded-lg p-3 flex justify-between items-center hover:bg-gray-100 transition';
-          nodeDiv.innerHTML = `
-            <div>
-              <span class="font-bold text-lg mr-2">${node.label}</span>
-              <span class="text-sm text-gray-500">(${node.x}, ${node.y})</span>
-            </div>
-            <div class="flex gap-2">
-              <button onclick="window.editNode('${id}')" class="text-blue-500 hover:text-blue-700 px-2">✏️</button>
-              <button onclick="window.deleteNode('${id}')" class="text-red-500 hover:text-red-700 px-2">🗑️</button>
-            </div>
-          `;
-          nodeList.appendChild(nodeDiv);
-        });
-      }
+  // Render result
+  const srcName = nodes[srcId]?.name ?? srcId;
+  let html = `<h4>KẾT QUẢ TỪ ĐỈNH <span style="color:var(--accent)">${srcName}</span></h4>`;
 
-      // Update source select
-      const sourceSelect = document.getElementById('sourceNode');
-      sourceSelect.innerHTML = '<option value="">Chọn đỉnh nguồn...</option>';
-      graph.nodes.forEach((node, id) => {
-        const option = document.createElement('option');
-        option.value = id;
-        option.textContent = node.label;
-        sourceSelect.appendChild(option);
-      });
+  const sortedIds = Object.keys(nodes).sort((a, b) => {
+    if (dist[a] === Infinity && dist[b] === Infinity) return 0;
+    if (dist[a] === Infinity) return 1;
+    if (dist[b] === Infinity) return -1;
+    return dist[a] - dist[b];
+  });
 
-      // Update edge form selects
-      const edgeFrom = document.getElementById('edgeFrom');
-      const edgeTo = document.getElementById('edgeTo');
-      edgeFrom.innerHTML = '<option value="">Chọn đỉnh...</option>';
-      edgeTo.innerHTML = '<option value="">Chọn đỉnh...</option>';
-      
-      graph.nodes.forEach((node, id) => {
-        const option1 = document.createElement('option');
-        option1.value = id;
-        option1.textContent = node.label;
-        edgeFrom.appendChild(option1.cloneNode(true));
-        
-        const option2 = document.createElement('option');
-        option2.value = id;
-        option2.textContent = node.label;
-        edgeTo.appendChild(option2);
-      });
+  sortedIds.forEach(id => {
+    const n = nodes[id];
+    if (!n) return;
+    const d = dist[id];
+    let path = [];
+    if (d < Infinity) {
+      let cur = id;
+      while (cur) { path.unshift(nodes[cur]?.name ?? cur); cur = prev[cur]; }
     }
+    html += `<div class="result-row">
+      <span class="result-node">${n.name}</span>
+      <span class="result-dist ${d===Infinity?'result-inf':''}">${d===Infinity?'∞':d}</span>
+      <span class="result-path">${d<Infinity ? path.join(' → ') : 'Không thể đến'}</span>
+    </div>`;
+  });
 
-    // Event Handlers
-    canvas.addEventListener('click', (e) => {
-      const rect = canvas.getBoundingClientRect();
-      const scaleX = canvas.width / rect.width;
-      const scaleY = canvas.height / rect.height;
-      
-      const x = (e.clientX - rect.left) * scaleX;
-      const y = (e.clientY - rect.top) * scaleY;
+  document.getElementById('resultBox').innerHTML = html;
+  draw();
+};
 
-      // Find clicked node
-      let clickedNode = null;
-      graph.nodes.forEach((node, id) => {
-        const dx = node.x - x;
-        const dy = node.y - y;
-        if (dx * dx + dy * dy < 625) { // 25^2 radius
-          clickedNode = id;
-        }
-      });
+// ── Render sidebar ─────────────────────────────────────────────────────
+function renderSidebar() {
+  const nl = document.getElementById('nodeList');
+  const srcSel = document.getElementById('sourceSelect');
 
-      if (mode === 'add-node') {
-        // Add node at click position
-        const id = prompt('Nhập tên đỉnh (tối đa 3 ký tự):', '');
-        if (id && id.length <= 3) {
-          if (graph.addNode(id.toUpperCase(), x, y, id.toUpperCase())) {
-            updateUI();
-            draw();
-          } else {
-            alert('Tên đỉnh đã tồn tại!');
-          }
-        }
-      } else if (mode === 'add-edge') {
-        if (clickedNode) {
-          if (!selectedNode) {
-            selectedNode = clickedNode;
-            draw();
-          } else if (selectedNode !== clickedNode) {
-            const weight = prompt('Nhập trọng số:', '1');
-            if (weight && !isNaN(weight) && weight > 0) {
-              graph.addEdge(selectedNode, clickedNode, parseInt(weight));
-              selectedNode = null;
-              mode = 'view';
-              updateUI();
-              draw();
-            }
-          } else {
-            selectedNode = null;
-            mode = 'view';
-            draw();
-          }
-        }
-      } else if (clickedNode) {
-        selectedNode = clickedNode;
-        draw();
-      }
+  // Node list
+  const nodeIds = Object.keys(nodes);
+  let html = `<h3>Đỉnh (${nodeIds.length})</h3>`;
+  if (nodeIds.length === 0) html += '<div class="empty">Chưa có đỉnh. Nhấn "+ Thêm đỉnh" hoặc double-click canvas.</div>';
+  else nodeIds.forEach(id => {
+    const n = nodes[id];
+    html += `<div class="node-item">
+      <div>
+        <div class="name">${n.name}</div>
+        <div class="coords">(${n.x}, ${n.y})</div>
+      </div>
+      <div class="actions">
+        <button class="icon-btn edit" onclick="editNode('${id}')">✎</button>
+        <button class="icon-btn del" onclick="deleteNode('${id}')">✕</button>
+      </div>
+    </div>`;
+  });
+
+  // Edge list
+  html += `<div class="edge-list"><h3>Cạnh (${edges.length})</h3>`;
+  if (edges.length === 0) html += '<div class="empty">Chưa có cạnh. Nhấn "⟶ Thêm cạnh".</div>';
+  else edges.forEach(e => {
+    const f = nodes[e.from]?.name ?? '?';
+    const t = nodes[e.to]?.name ?? '?';
+    html += `<div class="edge-item">
+      <span class="route">${f} → ${t}</span>
+      <span class="w">${e.weight}</span>
+      <button class="del" onclick="deleteEdge('${e.id}')">✕</button>
+    </div>`;
+  });
+  html += '</div>';
+  nl.innerHTML = html;
+
+  // Source select
+  const prev = srcSel.value;
+  srcSel.innerHTML = '<option value="">Chọn đỉnh nguồn...</option>';
+  nodeIds.forEach(id => {
+    const n = nodes[id];
+    srcSel.insertAdjacentHTML('beforeend', `<option value="${id}" ${id===prev?'selected':''}>${n.name}</option>`);
+  });
+}
+
+// ── Firebase sync ──────────────────────────────────────────────────────
+function saveGraph() {
+  set(ROOT, { nodes, edges }).catch(err => {
+    console.error('Save failed', err);
+    statusDot.classList.remove('online');
+    statusText.textContent = 'Lỗi kết nối';
+  });
+}
+
+onValue(ROOT, snap => {
+  statusDot.classList.add('online');
+  statusText.textContent = 'Đã kết nối';
+
+  const data = snap.val();
+  if (!data) { nodes = {}; edges = []; }
+  else {
+    nodes = data.nodes ?? {};
+    edges = data.edges ?? [];
+
+    // Data integrity: ensure all nodes have id field
+    Object.entries(nodes).forEach(([id, n]) => {
+      if (!n.id) nodes[id].id = id;
     });
+    // Ensure edges have id
+    edges = edges.map(e => ({ id: e.id ?? generateId(), ...e }));
+    // Remove edges referencing non-existent nodes
+    edges = edges.filter(e => nodes[e.from] && nodes[e.to]);
+  }
 
-    // Button handlers
-    document.getElementById('addNodeBtn').addEventListener('click', () => {
-      mode = 'add-node';
-      selectedNode = null;
-      draw();
-    });
+  renderSidebar();
+  draw();
+}, err => {
+  statusDot.classList.remove('online');
+  statusText.textContent = 'Mất kết nối';
+  console.error(err);
+});
 
-    document.getElementById('addEdgeBtn').addEventListener('click', () => {
-      if (graph.nodes.size < 2) {
-        alert('Cần ít nhất 2 đỉnh để thêm cạnh!');
-        return;
-      }
-      mode = 'add-edge';
-      selectedNode = null;
-      draw();
-    });
-
-    document.getElementById('runDijkstraBtn').addEventListener('click', () => {
-      const source = document.getElementById('sourceNode').value;
-      if (!source) {
-        alert('Vui lòng chọn đỉnh nguồn!');
-        return;
-      }
-
-      const result = graph.dijkstra(source);
-      if (!result) return;
-
-      const { distances, previous } = result;
-      
-      // Display results
-      const resultContainer = document.getElementById('resultContainer');
-      resultContainer.innerHTML = '<h3 class="font-bold mb-3">📊 Kết quả từ đỉnh ' + graph.nodes.get(source).label + ':</h3>';
-      
-      graph.nodes.forEach((node, id) => {
-        const dist = distances.get(id);
-        const path = graph.getPath(previous, id);
-        
-        const resultCard = document.createElement('div');
-        resultCard.className = 'result-card';
-        
-        if (dist === Infinity) {
-          resultCard.innerHTML = `
-            <div class="font-semibold">${node.label}</div>
-            <div class="text-sm opacity-90">❌ Không thể đến được</div>
-          `;
-        } else {
-          resultCard.innerHTML = `
-            <div class="font-semibold">${node.label}</div>
-            <div class="text-sm opacity-90">📏 Khoảng cách: ${dist}</div>
-            <div class="text-sm opacity-90">🛣️ Đường đi: ${path.map(p => graph.nodes.get(p).label).join(' → ')}</div>
-          `;
-        }
-        
-        resultContainer.appendChild(resultCard);
-      });
-
-      // Highlight path to selected node (if any)
-      if (selectedNode) {
-        highlightedPath = graph.getPath(previous, selectedNode);
-      }
-      draw();
-    });
-
-    document.getElementById('visualizeBtn').addEventListener('click', () => {
-      document.getElementById('runDijkstraBtn').click();
-    });
-
-    document.getElementById('resetBtn').addEventListener('click', () => {
-      if (confirm('Xóa tất cả dữ liệu?')) {
-        graph.clear();
-        selectedNode = null;
-        highlightedPath = [];
-        mode = 'view';
-        updateUI();
-        draw();
-      }
-    });
-
-    // Modal handlers
-    document.getElementById('addNodeBtn').addEventListener('click', () => {
-      document.getElementById('modalTitle').textContent = '➕ Thêm đỉnh mới';
-      nodeForm.classList.remove('hidden');
-      edgeForm.classList.add('hidden');
-      modal.classList.remove('hidden');
-    });
-
-    document.getElementById('addEdgeBtn').addEventListener('click', () => {
-      if (graph.nodes.size < 2) {
-        alert('Cần ít nhất 2 đỉnh!');
-        return;
-      }
-      document.getElementById('modalTitle').textContent = '🔗 Thêm cạnh mới';
-      nodeForm.classList.add('hidden');
-      edgeForm.classList.remove('hidden');
-      modal.classList.remove('hidden');
-    });
-
-    nodeForm.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const name = document.getElementById('nodeName').value.toUpperCase().trim();
-      const x = parseInt(document.getElementById('nodeX').value);
-      const y = parseInt(document.getElementById('nodeY').value);
-      
-      if (graph.addNode(name, x, y, name)) {
-        modal.classList.add('hidden');
-        nodeForm.reset();
-        updateUI();
-        draw();
-      } else {
-        alert('Tên đỉnh đã tồn tại!');
-      }
-    });
-
-    edgeForm.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const from = document.getElementById('edgeFrom').value;
-      const to = document.getElementById('edgeTo').value;
-      const weight = parseInt(document.getElementById('edgeWeight').value);
-      
-      if (from && to && weight > 0) {
-        if (from === to) {
-          alert('Không thể tạo cạnh từ một đỉnh đến chính nó!');
-          return;
-        }
-        graph.addEdge(from, to, weight);
-        modal.classList.add('hidden');
-        edgeForm.reset();
-        updateUI();
-        draw();
-      }
-    });
-
-    document.getElementById('cancelModal').addEventListener('click', () => {
-      modal.classList.add('hidden');
-      nodeForm.reset();
-    });
-
-    document.getElementById('cancelEdgeModal').addEventListener('click', () => {
-      modal.classList.add('hidden');
-      edgeForm.reset();
-    });
-
-    modal.addEventListener('click', (e) => {
-      if (e.target === modal) {
-        modal.classList.add('hidden');
-        nodeForm.reset();
-        edgeForm.reset();
-      }
-    });
-
-    // Delete functions
-    window.deleteNode = (id) => {
-      if (confirm(`Xóa đỉnh ${graph.nodes.get(id).label}?`)) {
-        graph.removeNode(id);
-        if (selectedNode === id) selectedNode = null;
-        highlightedPath = [];
-        updateUI();
-        draw();
-      }
-    };
-
-    window.editNode = (id) => {
-      const node = graph.nodes.get(id);
-      const newLabel = prompt('Nhập tên mới cho đỉnh:', node.label);
-      if (newLabel && newLabel.length <= 3) {
-        const newX = prompt('Nhập tọa độ X (50-950):', node.x);
-        const newY = prompt('Nhập tọa độ Y (50-550):', node.y);
-        
-        if (newX && newY) {
-          graph.nodes.set(id, { 
-            x: parseInt(newX), 
-            y: parseInt(newY), 
-            label: newLabel.toUpperCase() 
-          });
-          updateUI();
-          draw();
-        }
-      }
-    };
-
-    // Theme toggle
-    document.getElementById('themeToggle').addEventListener('click', () => {
-      darkMode = !darkMode;
-      document.body.style.background = darkMode ? 
-        'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)' : 
-        'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
-      draw();
-    });
-
-    // Initialize
-    initializeSample();
-  </script>
+// ── Utils ──────────────────────────────────────────────────────────────
+function generateId() {
+  return 'n' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+}
+</script>
 </body>
 </html>
