@@ -3,218 +3,403 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Nghe Nhạc & Lưu Vào Firebase</title>
+  <title>Nghe Nhạc & Lưu Firebase</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
   <style>
+    :root {
+      --green: #1db954;
+      --green-light: #1ed760;
+      --bg: #0a0a0a;
+      --surface: #141414;
+      --surface2: #1e1e1e;
+      --surface3: #282828;
+      --text: #fff;
+      --text-muted: #6a6a6a;
+      --red: #e63946;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      font-family: Arial, sans-serif;
-      background: #121212;
-      color: #fff;
-      margin: 0;
-      padding: 20px;
+      font-family: 'Syne', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 30px 20px;
     }
     h1 {
       text-align: center;
-      color: #1db954;
+      font-size: 2rem;
+      font-weight: 800;
+      letter-spacing: -1px;
+      color: var(--green);
+      margin-bottom: 30px;
     }
-    .container {
-      max-width: 800px;
-      margin: 0 auto;
-    }
+    .container { max-width: 780px; margin: 0 auto; }
+
     .player {
-      background: #1e1e1e;
-      padding: 20px;
-      border-radius: 12px;
-      margin-bottom: 25px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+      background: var(--surface);
+      border: 1px solid #222;
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 28px;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.6);
+    }
+    .now-playing {
+      font-size: 0.72rem;
+      font-family: 'Space Mono', monospace;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin-bottom: 4px;
+    }
+    .song-title {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--green);
+      margin-bottom: 14px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     audio {
       width: 100%;
-      margin: 15px 0;
-    }
-    input, button {
-      padding: 10px;
-      margin: 8px 4px;
-      border-radius: 6px;
-      border: none;
-      font-size: 1rem;
-    }
-    button {
-      background: #1db954;
-      color: white;
-      cursor: pointer;
-    }
-    button:hover {
-      background: #1ed760;
-    }
-    #songList {
-      list-style: none;
-      padding: 0;
-    }
-    #songList li {
-      background: #282828;
-      margin: 10px 0;
-      padding: 15px;
+      height: 40px;
+      margin-bottom: 20px;
       border-radius: 8px;
+      accent-color: var(--green);
+    }
+    .upload-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+    .upload-row input[type="text"] {
+      flex: 1;
+      min-width: 140px;
+      padding: 10px 14px;
+      background: var(--surface3);
+      border: 1px solid #333;
+      border-radius: 8px;
+      color: #fff;
+      font-family: 'Syne', sans-serif;
+      font-size: 0.95rem;
+      outline: none;
+      transition: border 0.2s;
+    }
+    .upload-row input[type="text"]:focus { border-color: var(--green); }
+    .file-label {
+      padding: 10px 16px;
+      background: var(--surface3);
+      border: 1px dashed #444;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      color: #aaa;
+      transition: border-color 0.2s, color 0.2s;
+      white-space: nowrap;
+    }
+    .file-label:hover { border-color: var(--green); color: var(--green); }
+    #songFile { display: none; }
+    .btn-upload {
+      padding: 10px 20px;
+      background: var(--green);
+      color: #000;
+      font-weight: 700;
+      font-family: 'Syne', sans-serif;
+      font-size: 0.95rem;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+      white-space: nowrap;
+    }
+    .btn-upload:hover { background: var(--green-light); transform: translateY(-1px); }
+    .btn-upload:disabled { background: #444; color: #888; cursor: not-allowed; transform: none; }
+
+    .progress-wrap { display: none; margin-top: 14px; }
+    .progress-wrap.visible { display: block; }
+    .progress-bar-bg {
+      width: 100%; height: 6px;
+      background: #2a2a2a; border-radius: 3px; overflow: hidden;
+    }
+    .progress-bar-fill {
+      height: 100%; background: var(--green);
+      width: 0%; transition: width 0.3s; border-radius: 3px;
+    }
+    .progress-label {
+      font-size: 0.78rem;
+      font-family: 'Space Mono', monospace;
+      color: var(--text-muted);
+      margin-top: 6px;
+    }
+    .size-warn {
+      font-size: 0.78rem; color: #f4a261;
+      margin-top: 8px; display: none;
+      font-family: 'Space Mono', monospace;
+    }
+    .size-warn.visible { display: block; }
+
+    .list-header {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+    #songList { list-style: none; }
+    #songList li {
+      background: var(--surface2);
+      border: 1px solid #1f1f1f;
+      margin-bottom: 8px;
+      padding: 14px 16px;
+      border-radius: 10px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      transition: 0.2s;
+      gap: 10px;
+      transition: background 0.15s, border-color 0.15s;
     }
-    #songList li:hover {
-      background: #3a3a3a;
+    #songList li:hover { background: var(--surface3); border-color: #333; }
+    #songList li.playing { border-color: var(--green); background: rgba(29,185,84,0.07); }
+    .song-info { flex: 1; min-width: 0; }
+    .song-name {
+      font-weight: 700; font-size: 1rem;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
-    #songList button {
-      background: #e63946;
-      padding: 8px 14px;
-      font-size: 0.9rem;
+    .song-meta {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;
     }
-    #loopInfo {
-      text-align: center;
-      margin: 15px 0;
-      color: #b3b3b3;
+    .song-actions { display: flex; gap: 8px; flex-shrink: 0; }
+    .btn-play {
+      padding: 7px 16px;
+      background: var(--green); color: #000;
+      font-weight: 700; font-family: 'Syne', sans-serif;
+      font-size: 0.82rem; border: none;
+      border-radius: 6px; cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-play:hover { background: var(--green-light); }
+    .btn-delete {
+      padding: 7px 12px;
+      background: transparent; color: var(--red);
+      border: 1px solid var(--red);
+      font-family: 'Syne', sans-serif; font-size: 0.82rem;
+      border-radius: 6px; cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+    }
+    .btn-delete:hover { background: var(--red); color: #fff; }
+    .empty-state {
+      text-align: center; padding: 40px;
+      color: var(--text-muted);
+      font-family: 'Space Mono', monospace; font-size: 0.85rem;
     }
   </style>
 </head>
 <body>
 
 <div class="container">
-  <h1>Nghe Nhạc & Lưu Firebase</h1>
+  <h1>🎵 Music Vault</h1>
 
   <div class="player">
-    <h2>Đang phát: <span id="currentTitle">Chưa chọn bài</span></h2>
+    <div class="now-playing">Đang phát</div>
+    <div class="song-title" id="currentTitle">— Chưa chọn bài —</div>
     <audio id="audioPlayer" controls></audio>
 
-    <div>
-      <input type="text" id="songTitle" placeholder="Tên bài hát (bắt buộc)" style="width:220px;" />
-      <input type="file" id="songFile" accept="audio/*" />
-      <button onclick="uploadAndSave()">Upload & Lưu</button>
+    <div class="upload-row">
+      <input type="text" id="songTitle" placeholder="Tên bài hát" />
+      <label class="file-label" for="songFile" id="fileLabel">📂 Chọn file MP3</label>
+      <input type="file" id="songFile" accept="audio/*" onchange="onFileSelect(this)" />
+      <button class="btn-upload" id="uploadBtn" onclick="uploadAndSave()">Lưu vào Firebase</button>
+    </div>
+
+    <div class="size-warn" id="sizeWarn">
+      ⚠ File &gt;9MB có thể vượt giới hạn Firebase Free (10MB/node). Hãy dùng file nhỏ hơn.
+    </div>
+
+    <div class="progress-wrap" id="progressWrap">
+      <div class="progress-bar-bg"><div class="progress-bar-fill" id="progressFill"></div></div>
+      <div class="progress-label" id="progressLabel">Đang xử lý...</div>
     </div>
   </div>
 
-  <div id="loopInfo">Danh sách bài hát đã lưu (tự động cập nhật realtime)</div>
-  <ul id="songList"></ul>
+  <div class="list-header">Danh sách đã lưu (realtime)</div>
+  <ul id="songList"><li class="empty-state">Đang tải...</li></ul>
 </div>
 
-<!-- Firebase SDK v9 compat (dễ dùng với CDN) -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
 <script>
-// Khởi tạo Firebase (chỉ cần databaseURL)
-const firebaseConfig = {
-  databaseURL: "https://supperdatabase-default-rtdb.firebaseio.com/"
-};
-
-firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
-const songsRef = db.ref("songs");  // Lưu tất cả bài hát dưới node "songs"
-
-// Element
-const audio = document.getElementById("audioPlayer");
-const currentTitle = document.getElementById("currentTitle");
-const songList = document.getElementById("songList");
-
-// Phát bài hát khi click
-function playSong(url, title) {
-  audio.src = url;
-  audio.play().catch(err => alert("Không phát được: " + err));
-  currentTitle.textContent = title || "Không có tiêu đề";
-}
-
-// Xóa bài hát
-function deleteSong(key) {
-  if (confirm("Xóa bài này?")) {
-    songsRef.child(key).remove();
-  }
-}
-
-// Hiển thị danh sách (realtime)
-songsRef.on("value", (snapshot) => {
-  songList.innerHTML = "";
-  const data = snapshot.val();
-
-  if (!data) {
-    songList.innerHTML = "<li>Chưa có bài hát nào được lưu.</li>";
-    return;
-  }
-
-  Object.entries(data).forEach(([key, song]) => {
-    const li = document.createElement("li");
-    li.innerHTML = `
-      <span>
-        <strong>${song.title || "Không tên"}</strong>
-        <br><small>${song.url.substring(0, 60)}${song.url.length > 60 ? "..." : ""}</small>
-      </span>
-      <button onclick="playSong('${song.url}', '${song.title.replace(/'/g, "\\'")}')">Phát</button>
-      <button onclick="deleteSong('${key}')">Xóa</button>
-    `;
-    songList.appendChild(li);
+  firebase.initializeApp({
+    databaseURL: "https://supperdatabase-default-rtdb.firebaseio.com/"
   });
-});
+  const db = firebase.database();
+  const songsRef = db.ref("songs");
 
-// Upload file local → chuyển thành URL tạm thời → lưu vào Firebase
-function uploadAndSave() {
-  const title = document.getElementById("songTitle").value.trim();
-  const fileInput = document.getElementById("songFile");
+  const audio = document.getElementById("audioPlayer");
+  const currentTitleEl = document.getElementById("currentTitle");
+  const songList = document.getElementById("songList");
 
-  if (!title) {
-    alert("Vui lòng nhập tên bài hát!");
-    return;
+  // In-memory map: key → base64 URL (avoid giant strings in onclick attrs)
+  window._songUrls = {};
+  let currentKey = null;
+
+  // ── File select ──────────────────────────────────────
+  function onFileSelect(input) {
+    const file = input.files[0];
+    if (!file) return;
+    document.getElementById("fileLabel").textContent = "🎵 " + file.name;
+    document.getElementById("sizeWarn").classList.toggle("visible", file.size > 9 * 1024 * 1024);
   }
-  if (!fileInput.files.length) {
-    alert("Vui lòng chọn file nhạc!");
-    return;
+
+  // ── File → Base64 Data URL ────────────────────────────
+  // Result: "data:audio/mpeg;base64,AAAA..."
+  // This string IS the audio — Firebase stores it, and the browser plays it directly
+  function fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onprogress = (e) => {
+        if (e.lengthComputable) {
+          const pct = Math.round((e.loaded / e.total) * 50);
+          setProgress(pct, `Đọc file: ${pct * 2}%`);
+        }
+      };
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(file); // ← key: readAsDataURL not readAsArrayBuffer
+    });
   }
 
-  const file = fileInput.files[0];
-  const objectURL = URL.createObjectURL(file); // URL tạm thời (chỉ tồn tại trong phiên)
+  function setProgress(pct, label) {
+    document.getElementById("progressFill").style.width = pct + "%";
+    document.getElementById("progressLabel").textContent = label;
+  }
 
-  // Lưu vào Firebase (dùng push để tạo key tự động)
-  songsRef.push({
-    title: title,
-    url: objectURL,       // Lưu URL tạm (blob)
-    uploadedAt: Date.now()
-  })
-  .then(() => {
-    alert("Đã lưu bài hát: " + title);
-    document.getElementById("songTitle").value = "";
-    fileInput.value = ""; // reset input file
-  })
-  .catch(err => {
-    alert("Lỗi khi lưu: " + err.message);
+  // ── Upload & Save ─────────────────────────────────────
+  async function uploadAndSave() {
+    const title = document.getElementById("songTitle").value.trim();
+    const fileInput = document.getElementById("songFile");
+    const btn = document.getElementById("uploadBtn");
+
+    if (!title) { alert("Vui lòng nhập tên bài hát!"); return; }
+    if (!fileInput.files.length) { alert("Vui lòng chọn file nhạc!"); return; }
+
+    const file = fileInput.files[0];
+    btn.disabled = true;
+    document.getElementById("progressWrap").classList.add("visible");
+    setProgress(0, "Đang đọc file...");
+
+    try {
+      // Step 1: Read file → Base64 data URL (50%)
+      const base64url = await fileToBase64(file);
+      setProgress(60, "Đang ghi vào Firebase...");
+
+      // Step 2: Push to Firebase — url is a self-contained base64 data URL
+      // Anyone loading this URL (audio.src = url) can play it instantly, no server needed
+      await songsRef.push({
+        title,
+        url: base64url,      // ← data:audio/mpeg;base64,AAAA... (persistent, playable)
+        size: file.size,
+        type: file.type,
+        uploadedAt: Date.now()
+      });
+
+      setProgress(100, "✅ Lưu thành công!");
+      setTimeout(() => document.getElementById("progressWrap").classList.remove("visible"), 2500);
+
+      document.getElementById("songTitle").value = "";
+      fileInput.value = "";
+      document.getElementById("fileLabel").textContent = "📂 Chọn file MP3";
+      document.getElementById("sizeWarn").classList.remove("visible");
+    } catch (err) {
+      setProgress(0, "❌ Lỗi: " + err.message);
+      alert("Lỗi khi lưu: " + err.message);
+    }
+
+    btn.disabled = false;
+  }
+
+  // ── Play song ─────────────────────────────────────────
+  function playSong(key) {
+    const url = window._songUrls[key];
+    const title = window._songTitles[key];
+    if (!url) return;
+    audio.src = url;   // base64 data URL → phát ngay, không cần mạng
+    audio.play().catch(err => alert("Không phát được: " + err));
+    currentTitleEl.textContent = title || "Không tên";
+    currentKey = key;
+    renderHighlight();
+  }
+
+  window._songTitles = {};
+
+  // ── Delete ────────────────────────────────────────────
+  function deleteSong(key) {
+    if (confirm("Xóa bài này?")) songsRef.child(key).remove();
+  }
+
+  function fmtSize(bytes) {
+    if (!bytes) return "";
+    return bytes < 1024 * 1024
+      ? (bytes / 1024).toFixed(0) + " KB"
+      : (bytes / (1024 * 1024)).toFixed(1) + " MB";
+  }
+
+  function renderHighlight() {
+    document.querySelectorAll("#songList li[data-key]").forEach(li => {
+      li.classList.toggle("playing", li.dataset.key === currentKey);
+    });
+  }
+
+  // ── Realtime list ─────────────────────────────────────
+  songsRef.on("value", (snapshot) => {
+    songList.innerHTML = "";
+    const data = snapshot.val();
+
+    if (!data) {
+      songList.innerHTML = '<li class="empty-state">Chưa có bài hát nào. Hãy upload bài đầu tiên!</li>';
+      return;
+    }
+
+    window._songUrls = {};
+    window._songTitles = {};
+
+    const entries = Object.entries(data).reverse();
+    entries.forEach(([key, song]) => {
+      window._songUrls[key] = song.url;
+      window._songTitles[key] = song.title || "Không tên";
+
+      const li = document.createElement("li");
+      li.dataset.key = key;
+      if (key === currentKey) li.classList.add("playing");
+
+      const safeName = (song.title || "Không tên")
+        .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+
+      li.innerHTML = `
+        <div class="song-info">
+          <div class="song-name">${safeName}</div>
+          <div class="song-meta">${song.type || "audio"} · ${fmtSize(song.size)}</div>
+        </div>
+        <div class="song-actions">
+          <button class="btn-play" onclick="playSong('${key}')">▶ Phát</button>
+          <button class="btn-delete" onclick="deleteSong('${key}')">✕ Xóa</button>
+        </div>
+      `;
+      songList.appendChild(li);
+    });
   });
-}
 
-// Bonus: Tự động phát bài tiếp theo khi kết thúc (loop playlist đơn giản)
-audio.addEventListener("ended", () => {
-  const buttons = songList.querySelectorAll("button[onclick^='playSong']");
-  if (buttons.length === 0) return;
-
-  // Tìm bài đang phát hiện tại
-  let currentUrl = audio.src;
-  let found = false;
-  let nextBtn = null;
-
-  for (let btn of buttons) {
-    if (found) {
-      nextBtn = btn;
-      break;
-    }
-    if (btn.getAttribute("onclick").includes(currentUrl)) {
-      found = true;
-    }
-  }
-
-  // Nếu không tìm thấy next → quay về bài đầu
-  if (!nextBtn && buttons.length > 0) {
-    nextBtn = buttons[0];
-  }
-
-  if (nextBtn) {
-    nextBtn.click();
-  }
-});
+  // ── Auto-next ─────────────────────────────────────────
+  audio.addEventListener("ended", () => {
+    const items = [...songList.querySelectorAll("li[data-key]")];
+    if (!items.length) return;
+    const idx = items.findIndex(li => li.dataset.key === currentKey);
+    const next = items[(idx + 1) % items.length];
+    if (next) next.querySelector(".btn-play").click();
+  });
 </script>
-
 </body>
 </html>
