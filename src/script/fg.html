@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Đếm thời gian đã qua</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      min-height: 100vh;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+    h1 {
+      margin: 0.4em 0 0.8em;
+      font-size: 2.1rem;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    }
+    .container {
+      background: rgba(255,255,255,0.12);
+      backdrop-filter: blur(10px);
+      border-radius: 16px;
+      padding: 2.2rem 2.8rem;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+      border: 1px solid rgba(255,255,255,0.18);
+      text-align: center;
+    }
+    .picker {
+      margin: 1.5rem 0 2rem;
+    }
+    input[type="date"] {
+      font-size: 1.1rem;
+      padding: 10px 16px;
+      border-radius: 10px;
+      border: none;
+      background: rgba(255,255,255,0.9);
+      color: #222;
+      width: 220px;
+      cursor: pointer;
+    }
+    #result {
+      font-size: 1.35rem;
+      line-height: 1.7;
+      letter-spacing: 0.5px;
+      min-height: 180px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+    .time-unit {
+      margin: 8px 0;
+      font-weight: 500;
+    }
+    .seconds {
+      font-size: 1.1rem;
+      opacity: 0.9;
+    }
+    footer {
+      margin-top: 3rem;
+      font-size: 0.9rem;
+      opacity: 0.8;
+    }
+    @media (max-width: 500px) {
+      .container { padding: 1.8rem 1.6rem; }
+      h1 { font-size: 1.8rem; }
+      #result { font-size: 1.2rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>Đã trôi qua bao lâu rồi?</h1>
+  
+  <div class="picker">
+    <label>Từ ngày: </label>
+    <input type="date" id="startDate">
+  </div>
+
+  <div id="result">
+    ← Chọn một ngày để bắt đầu đếm
+  </div>
+</div>
+
+<footer>Update realtime mỗi giây • Made with ❤️</footer>
+
+<script>
+const startDateInput = document.getElementById('startDate');
+const resultEl = document.getElementById('result');
+
+let savedDate = localStorage.getItem('countFromDate');
+if (savedDate) {
+  startDateInput.value = savedDate;
+}
+
+// Tự động đếm khi có ngày hợp lệ
+function updateCounter() {
+  const start = new Date(startDateInput.value);
+  if (isNaN(start.getTime())) {
+    resultEl.innerHTML = '← Chọn một ngày để bắt đầu đếm';
+    return;
+  }
+
+  const now = new Date();
+  let diffMs = now - start;
+
+  if (diffMs < 0) {
+    resultEl.innerHTML = 'Ngày được chọn ở tương lai!';
+    return;
+  }
+
+  const seconds = Math.floor(diffMs / 1000);
+  const minutes = Math.floor(seconds / 60);
+  const hours   = Math.floor(minutes / 60);
+  const days    = Math.floor(hours   / 24);
+
+  const years   = Math.floor(days / 365.25);
+  let remainDays = Math.floor(days - years * 365.25);
+  const months  = Math.floor(remainDays / 30.437);
+  remainDays = Math.floor(remainDays - months * 30.437);
+
+  const remainHours   = hours   % 24;
+  const remainMinutes = minutes % 60;
+  const remainSeconds = seconds % 60;
+
+  resultEl.innerHTML = `
+    <div class="time-unit"><b>${years}</b> năm</div>
+    <div class="time-unit"><b>${months}</b> tháng</div>
+    <div class="time-unit"><b>${remainDays}</b> ngày</div>
+    <div class="time-unit"><b>${remainHours}</b> giờ  <b>${remainMinutes}</b> phút</div>
+    <div class="time-unit seconds"><b>${remainSeconds}</b> giây</div>
+  `;
+}
+
+// Lưu ngày khi thay đổi
+startDateInput.addEventListener('change', () => {
+  if (startDateInput.value) {
+    localStorage.setItem('countFromDate', startDateInput.value);
+  }
+  updateCounter();
+});
+
+// Cập nhật mỗi giây
+setInterval(updateCounter, 1000);
+
+// Chạy lần đầu
+updateCounter();
+</script>
+
+</body>
+</html>
