@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IT Interview Prep - Câu hỏi phỏng vấn IT</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Space+Grotesk:wght@500;600&amp;display=swap');
+        
+        :root {
+            --primary: #3b82f6;
+        }
+        
+        body {
+            font-family: 'Inter', system_ui, sans-serif;
+        }
+        
+        .title-font {
+            font-family: 'Space Grotesk', sans-serif;
+        }
+
+        .card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+        }
+
+        details summary {
+            list-style: none;
+        }
+        
+        details summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .answer {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease-out;
+        }
+        
+        details[open] .answer {
+            max-height: 500px;
+        }
+
+        .tail-container {
+            max-width: 640px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .question-text {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body class="bg-zinc-950 text-zinc-200 min-h-screen pb-12">
+    <div class="tail-container px-4">
+        <!-- HEADER -->
+        <header class="pt-8 pb-6 text-center">
+            <div class="flex items-center justify-center gap-3 mb-2">
+                <div class="w-10 h-10 bg-blue-600 rounded-2xl flex items-center justify-center text-white text-3xl">
+                    💡
+                </div>
+                <h1 class="title-font text-4xl font-semibold tracking-tighter text-white">
+                    IT Interview
+                </h1>
+            </div>
+            <p class="text-zinc-400 text-sm">Chuẩn bị phỏng vấn ngành IT • Dữ liệu lưu trên Firebase</p>
+        </header>
+
+        <!-- FORM THÊM CÂU HỎI -->
+        <div class="bg-zinc-900 rounded-3xl shadow-2xl p-6 mb-8 border border-zinc-800">
+            <h2 class="flex items-center gap-2 text-xl font-semibold mb-5 text-white">
+                <i class="fa-solid fa-plus"></i>
+                Thêm câu hỏi mới
+            </h2>
+            
+            <form id="addForm" class="space-y-5">
+                <div>
+                    <label class="block text-xs font-medium text-zinc-400 mb-1.5">DANH MỤC</label>
+                    <select id="category" 
+                            class="w-full bg-zinc-800 border border-zinc-700 text-white rounded-2xl px-5 py-4 focus:outline-none focus:border-blue-500 transition">
+                        <option value="Frontend">Frontend</option>
+                        <option value="Backend">Backend</option>
+                        <option value="DevOps">DevOps</option>
+                        <option value="Mobile">Mobile</option>
+                        <option value="Data Science">Data Science / AI</option>
+                        <option value="Database">Database</option>
+                        <option value="System Design">System Design</option>
+                        <option value="General" selected>General / Other</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-zinc-400 mb-1.5">CÂU HỎI</label>
+                    <input type="text" id="question" 
+                           class="w-full bg-zinc-800 border border-zinc-700 text-white rounded-2xl px-5 py-4 focus:outline-none focus:border-blue-500 transition"
+                           placeholder="Ví dụ: React Hooks là gì?" required>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-zinc-400 mb-1.5">CÂU TRẢ LỜI (GỢI Ý)</label>
+                    <textarea id="answer" rows="4"
+                              class="w-full bg-zinc-800 border border-zinc-700 text-white rounded-3xl px-5 py-4 focus:outline-none focus:border-blue-500 transition resize-none"
+                              placeholder="Viết câu trả lời ngắn gọn..."></textarea>
+                </div>
+
+                <button type="submit"
+                        class="w-full bg-blue-600 hover:bg-blue-500 transition py-4 rounded-2xl font-semibold text-lg flex items-center justify-center gap-2 active:scale-95">
+                    <i class="fa-solid fa-paper-plane"></i>
+                    THÊM VÀO CSDL
+                </button>
+            </form>
+        </div>
+
+        <!-- SEARCH + FILTER -->
+        <div class="flex gap-3 mb-6">
+            <div class="flex-1 relative">
+                <input type="text" id="searchInput"
+                       placeholder="Tìm kiếm câu hỏi..."
+                       class="w-full bg-zinc-900 border border-zinc-700 text-white rounded-3xl pl-12 py-4 focus:outline-none focus:border-blue-500">
+                <i class="fa-solid fa-magnifying-glass absolute left-5 top-1/2 -translate-y-1/2 text-zinc-500"></i>
+            </div>
+            
+            <button onclick="clearSearch()" 
+                    class="px-5 bg-zinc-900 border border-zinc-700 hover:border-zinc-500 rounded-3xl flex items-center">
+                <i class="fa-solid fa-rotate text-zinc-400"></i>
+            </button>
+        </div>
+
+        <!-- DANH SÁCH CÂU HỎI -->
+        <div class="flex items-center justify-between mb-4 px-1">
+            <h3 class="font-semibold text-lg flex items-center gap-2">
+                <i class="fa-solid fa-list"></i>
+                Danh sách câu hỏi
+            </h3>
+            <span id="count" class="text-xs bg-zinc-900 text-zinc-400 px-3 py-1 rounded-3xl">0 câu</span>
+        </div>
+
+        <div id="questionsList" class="space-y-4">
+            <!-- JS sẽ render động -->
+        </div>
+
+        <!-- FOOTER -->
+        <div class="text-center mt-12 text-xs text-zinc-500">
+            <p>Dữ liệu được lưu realtime trên Firebase: <span class="font-mono text-blue-400">bigdata-c9bd2</span></p>
+            <p class="mt-1">Giao diện tối ưu 100% cho mobile • Không cần đăng nhập</p>
+        </div>
+    </div>
+
+    <script>
+        // ================== CONFIG ==================
+        const DB_URL = "https://bigdata-c9bd2-default-rtdb.firebaseio.com/questions.json";
+        
+        let allQuestions = [];
+        let currentFilter = "";
+
+        // ================== TAILWIND INIT ==================
+        function initTailwind() {
+            tailwind.config = {
+                content: [],
+                theme: {
+                    extend: {}
+                }
+            }
+        }
+
+        // ================== FETCH ALL QUESTIONS ==================
+        async function loadQuestions() {
+            try {
+                const response = await fetch(DB_URL);
+                if (!response.ok) throw new Error("Không thể kết nối Firebase");
+                
+                const data = await response.json();
+                
+                // Chuyển object Firebase thành array có key
+                allQuestions = data 
+                    ? Object.entries(data).map(([key, value]) => ({ key, ...value }))
+                    : [];
+                
+                renderQuestions();
+            } catch (error) {
+                console.error(error);
+                const list = document.getElementById("questionsList");
+                list.innerHTML = `
+                    <div class="bg-red-950 border border-red-800 text-red-400 rounded-3xl p-8 text-center">
+                        <i class="fa-solid fa-exclamation-triangle text-4xl mb-4"></i>
+                        <p class="font-medium">Không thể tải dữ liệu từ Firebase</p>
+                        <p class="text-xs mt-2">Vui lòng kiểm tra rules của database (allow read, write: true)</p>
+                    </div>
+                `;
+            }
+        }
+
+        // ================== RENDER QUESTIONS ==================
+        function renderQuestions() {
+            const container = document.getElementById("questionsList");
+            container.innerHTML = "";
+
+            let filtered = allQuestions;
+
+            if (currentFilter) {
+                const term = currentFilter.toLowerCase();
+                filtered = allQuestions.filter(q => 
+                    (q.question && q.question.toLowerCase().includes(term)) ||
+                    (q.answer && q.answer.toLowerCase().includes(term)) ||
+                    (q.category && q.category.toLowerCase().includes(term))
+                );
+            }
+
+            document.getElementById("count").textContent = `${filtered.length} câu`;
+
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="bg-zinc-900 border border-dashed border-zinc-700 rounded-3xl py-16 text-center">
+                        <i class="fa-solid fa-folder-open text-5xl text-zinc-600 mb-4"></i>
+                        <p class="text-zinc-400">Chưa có câu hỏi nào</p>
+                        <p class="text-xs text-zinc-500 mt-1">Hãy thêm câu hỏi đầu tiên!</p>
+                    </div>
+                `;
+                return;
+            }
+
+            filtered.forEach(q => {
+                const cardHTML = `
+                    <div class="card bg-zinc-900 border border-zinc-800 rounded-3xl overflow-hidden">
+                        <details class="group">
+                            <summary class="px-6 py-5 flex items-center justify-between cursor-pointer hover:bg-zinc-800 transition">
+                                <div class="flex items-center gap-4 flex-1 min-w-0">
+                                    <span class="shrink-0 px-4 py-1 text-xs font-medium rounded-3xl bg-blue-500/10 text-blue-400 border border-blue-500/30">
+                                        ${q.category || "General"}
+                                    </span>
+                                    <div class="question-text font-medium text-white text-[15px] leading-tight flex-1">
+                                        ${q.question || "Câu hỏi không có nội dung"}
+                                    </div>
+                                </div>
+                                <span class="text-2xl text-zinc-500 group-open:rotate-180 transition-transform">›</span>
+                            </summary>
+                            
+                            <div class="answer px-6 pb-6 pt-2 border-t border-zinc-800">
+                                <div class="pl-4 border-l-2 border-blue-500 text-zinc-300 text-[15px] leading-relaxed">
+                                    ${q.answer ? q.answer.replace(/\n/g, '<br>') : '<span class="italic text-zinc-500">Chưa có gợi ý trả lời</span>'}
+                                </div>
+                            </div>
+                        </details>
+                        
+                        <!-- ACTION BAR -->
+                        <div class="bg-zinc-950 border-t border-zinc-800 px-6 py-3 flex justify-end gap-3">
+                            <button onclick="deleteQuestion('${q.key}')" 
+                                    class="flex items-center gap-2 text-red-400 hover:text-red-500 text-sm font-medium transition">
+                                <i class="fa-solid fa-trash"></i>
+                                <span>Xóa</span>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                container.innerHTML += cardHTML;
+            });
+        }
+
+        // ================== ADD QUESTION ==================
+        async function addQuestion(e) {
+            e.preventDefault();
+
+            const category = document.getElementById("category").value;
+            const question = document.getElementById("question").value.trim();
+            const answer = document.getElementById("answer").value.trim();
+
+            if (!question) {
+                alert("Vui lòng nhập câu hỏi!");
+                return;
+            }
+
+            const newQuestion = {
+                category: category,
+                question: question,
+                answer: answer || "",
+                timestamp: Date.now()
+            };
+
+            try {
+                const response = await fetch(DB_URL, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(newQuestion)
+                });
+
+                if (response.ok) {
+                    // Reset form
+                    document.getElementById("addForm").reset();
+                    // Tải lại danh sách
+                    await loadQuestions();
+                    
+                    // Thông báo thành công
+                    const successMsg = document.createElement("div");
+                    successMsg.className = "fixed bottom-6 left-1/2 -translate-x-1/2 bg-green-600 text-white text-sm px-8 py-3 rounded-3xl shadow-xl flex items-center gap-3 z-50";
+                    successMsg.innerHTML = `
+                        <i class="fa-solid fa-check-circle"></i>
+                        <span>Đã thêm câu hỏi thành công!</span>
+                    `;
+                    document.body.appendChild(successMsg);
+                    
+                    setTimeout(() => {
+                        successMsg.style.transition = "all 0.4s";
+                        successMsg.style.opacity = "0";
+                        setTimeout(() => successMsg.remove(), 400);
+                    }, 2500);
+                }
+            } catch (err) {
+                alert("Lỗi khi thêm câu hỏi: " + err.message);
+            }
+        }
+
+        // ================== DELETE QUESTION ==================
+        async function deleteQuestion(key) {
+            if (!confirm("Bạn chắc chắn muốn xóa câu hỏi này?")) return;
+
+            try {
+                const deleteURL = `https://bigdata-c9bd2-default-rtdb.firebaseio.com/questions/${key}.json`;
+                const response = await fetch(deleteURL, { method: "DELETE" });
+                
+                if (response.ok) {
+                    await loadQuestions();
+                }
+            } catch (err) {
+                alert("Lỗi khi xóa: " + err.message);
+            }
+        }
+
+        // ================== SEARCH ==================
+        function setupSearch() {
+            const searchInput = document.getElementById("searchInput");
+            
+            searchInput.addEventListener("input", () => {
+                currentFilter = searchInput.value;
+                renderQuestions();
+            });
+        }
+
+        function clearSearch() {
+            document.getElementById("searchInput").value = "";
+            currentFilter = "";
+            renderQuestions();
+        }
+
+        // ================== INIT ==================
+        function initializeApp() {
+            initTailwind();
+            
+            // Submit form
+            const form = document.getElementById("addForm");
+            form.addEventListener("submit", addQuestion);
+            
+            // Search
+            setupSearch();
+            
+            // Load dữ liệu lần đầu
+            loadQuestions();
+            
+            // Tự động refresh mỗi 30 giây (nếu nhiều thiết bị dùng chung DB)
+            setInterval(() => {
+                if (document.visibilityState === "visible") {
+                    loadQuestions();
+                }
+            }, 30000);
+        }
+
+        // Khởi chạy khi trang load xong
+        window.onload = initializeApp;
+    </script>
+</body>
+</html>
