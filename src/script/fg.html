@@ -1,157 +1,193 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Đếm thời gian đã qua</title>
-  <style>
-    body {
-      font-family: system-ui, -apple-system, sans-serif;
-      background: linear-gradient(135deg, #667eea, #764ba2);
-      color: white;
-      min-height: 100vh;
-      margin: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-      box-sizing: border-box;
-    }
-    h1 {
-      margin: 0.4em 0 0.8em;
-      font-size: 2.1rem;
-      text-shadow: 0 2px 8px rgba(0,0,0,0.4);
-    }
-    .container {
-      background: rgba(255,255,255,0.12);
-      backdrop-filter: blur(10px);
-      border-radius: 16px;
-      padding: 2.2rem 2.8rem;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.35);
-      border: 1px solid rgba(255,255,255,0.18);
-      text-align: center;
-    }
-    .picker {
-      margin: 1.5rem 0 2rem;
-    }
-    input[type="date"] {
-      font-size: 1.1rem;
-      padding: 10px 16px;
-      border-radius: 10px;
-      border: none;
-      background: rgba(255,255,255,0.9);
-      color: #222;
-      width: 220px;
-      cursor: pointer;
-    }
-    #result {
-      font-size: 1.35rem;
-      line-height: 1.7;
-      letter-spacing: 0.5px;
-      min-height: 180px;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-    }
-    .time-unit {
-      margin: 8px 0;
-      font-weight: 500;
-    }
-    .seconds {
-      font-size: 1.1rem;
-      opacity: 0.9;
-    }
-    footer {
-      margin-top: 3rem;
-      font-size: 0.9rem;
-      opacity: 0.8;
-    }
-    @media (max-width: 500px) {
-      .container { padding: 1.8rem 1.6rem; }
-      h1 { font-size: 1.8rem; }
-      #result { font-size: 1.2rem; }
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Đếm thời gian đã qua</title>
+
+<style>
+
+*{
+box-sizing:border-box;
+}
+
+body{
+margin:0;
+font-family:system-ui,-apple-system,sans-serif;
+background:linear-gradient(135deg,#5f9cff,#7b5bff,#ff6ec7);
+min-height:100vh;
+display:flex;
+align-items:center;
+justify-content:center;
+color:white;
+padding:15px;
+}
+
+.container{
+width:100%;
+max-width:420px;
+background:rgba(255,255,255,0.12);
+backdrop-filter:blur(14px);
+border-radius:18px;
+padding:22px;
+box-shadow:0 12px 40px rgba(0,0,0,0.35);
+border:1px solid rgba(255,255,255,0.2);
+text-align:center;
+}
+
+h1{
+margin:10px 0 20px;
+font-size:1.6rem;
+}
+
+input{
+width:100%;
+padding:12px;
+font-size:16px;
+border-radius:10px;
+border:none;
+margin-bottom:20px;
+}
+
+.grid{
+display:grid;
+grid-template-columns:repeat(2,1fr);
+gap:12px;
+}
+
+.card{
+background:rgba(255,255,255,0.15);
+padding:14px;
+border-radius:12px;
+}
+
+.number{
+font-size:22px;
+font-weight:700;
+}
+
+.label{
+font-size:13px;
+opacity:0.85;
+}
+
+.big{
+grid-column:span 2;
+background:rgba(0,0,0,0.25);
+}
+
+footer{
+margin-top:15px;
+font-size:12px;
+opacity:0.8;
+}
+
+</style>
 </head>
+
 <body>
 
 <div class="container">
-  <h1>Đã trôi qua bao lâu rồi?</h1>
-  
-  <div class="picker">
-    <label>Từ ngày: </label>
-    <input type="date" id="startDate">
-  </div>
 
-  <div id="result">
-    ← Chọn một ngày để bắt đầu đếm
-  </div>
+<h1>⏳ Thời gian đã trôi qua</h1>
+
+<input type="date" id="startDate">
+
+<div id="result" class="grid">
+
+<div class="card big">
+<div class="number">--</div>
+<div class="label">Tổng số ngày</div>
 </div>
 
-<footer>Update realtime mỗi giây • Made with ❤️</footer>
+</div>
+
+<footer>Cập nhật mỗi giây</footer>
+
+</div>
 
 <script>
-const startDateInput = document.getElementById('startDate');
-const resultEl = document.getElementById('result');
 
-let savedDate = localStorage.getItem('countFromDate');
-if (savedDate) {
-  startDateInput.value = savedDate;
+const startDateInput = document.getElementById("startDate");
+const result = document.getElementById("result");
+
+let saved = localStorage.getItem("countFromDate");
+if(saved) startDateInput.value = saved;
+
+function update(){
+
+const start = new Date(startDateInput.value);
+if(isNaN(start)) return;
+
+const now = new Date();
+let diff = now - start;
+
+if(diff<0) return;
+
+const seconds = Math.floor(diff/1000);
+const minutes = Math.floor(seconds/60);
+const hours = Math.floor(minutes/60);
+const days = Math.floor(hours/24);
+
+const years = Math.floor(days/365.25);
+let remainDays = Math.floor(days - years*365.25);
+
+const months = Math.floor(remainDays/30.437);
+remainDays = Math.floor(remainDays - months*30.437);
+
+const h = hours%24;
+const m = minutes%60;
+const s = seconds%60;
+
+result.innerHTML=`
+
+<div class="card big">
+<div class="number">${days}</div>
+<div class="label">Tổng số ngày</div>
+</div>
+
+<div class="card">
+<div class="number">${years}</div>
+<div class="label">Năm</div>
+</div>
+
+<div class="card">
+<div class="number">${months}</div>
+<div class="label">Tháng</div>
+</div>
+
+<div class="card">
+<div class="number">${remainDays}</div>
+<div class="label">Ngày</div>
+</div>
+
+<div class="card">
+<div class="number">${h}</div>
+<div class="label">Giờ</div>
+</div>
+
+<div class="card">
+<div class="number">${m}</div>
+<div class="label">Phút</div>
+</div>
+
+<div class="card">
+<div class="number">${s}</div>
+<div class="label">Giây</div>
+</div>
+
+`;
+
 }
 
-// Tự động đếm khi có ngày hợp lệ
-function updateCounter() {
-  const start = new Date(startDateInput.value);
-  if (isNaN(start.getTime())) {
-    resultEl.innerHTML = '← Chọn một ngày để bắt đầu đếm';
-    return;
-  }
-
-  const now = new Date();
-  let diffMs = now - start;
-
-  if (diffMs < 0) {
-    resultEl.innerHTML = 'Ngày được chọn ở tương lai!';
-    return;
-  }
-
-  const seconds = Math.floor(diffMs / 1000);
-  const minutes = Math.floor(seconds / 60);
-  const hours   = Math.floor(minutes / 60);
-  const days    = Math.floor(hours   / 24);
-
-  const years   = Math.floor(days / 365.25);
-  let remainDays = Math.floor(days - years * 365.25);
-  const months  = Math.floor(remainDays / 30.437);
-  remainDays = Math.floor(remainDays - months * 30.437);
-
-  const remainHours   = hours   % 24;
-  const remainMinutes = minutes % 60;
-  const remainSeconds = seconds % 60;
-
-  resultEl.innerHTML = `
-    <div class="time-unit"><b>${years}</b> năm</div>
-    <div class="time-unit"><b>${months}</b> tháng</div>
-    <div class="time-unit"><b>${remainDays}</b> ngày</div>
-    <div class="time-unit"><b>${remainHours}</b> giờ  <b>${remainMinutes}</b> phút</div>
-    <div class="time-unit seconds"><b>${remainSeconds}</b> giây</div>
-  `;
-}
-
-// Lưu ngày khi thay đổi
-startDateInput.addEventListener('change', () => {
-  if (startDateInput.value) {
-    localStorage.setItem('countFromDate', startDateInput.value);
-  }
-  updateCounter();
+startDateInput.addEventListener("change",()=>{
+localStorage.setItem("countFromDate",startDateInput.value);
+update();
 });
 
-// Cập nhật mỗi giây
-setInterval(updateCounter, 1000);
+setInterval(update,1000);
+update();
 
-// Chạy lần đầu
-updateCounter();
 </script>
 
 </body>
