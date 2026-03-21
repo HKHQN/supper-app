@@ -1,522 +1,123 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MOTO 15M-102610 | Vòng Quanh Thế Giới</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Playfair+Display:wght@700&display=swap');
-        
-        :root {
-            --primary: #f97316;
-        }
-        
-        body {
-            font-family: 'Inter', system-ui, sans-serif;
-        }
-        
-        .hero-bg {
-            background-image: linear-gradient(rgba(0,0,0,0.65), rgba(0,0,0,0.75)), url('https://picsum.photos/id/1015/2000/1200');
-            background-size: cover;
-            background-position: center;
-        }
-        
-        .nav-link {
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        
-        .nav-link:hover {
-            color: #f97316;
-            transform: translateY(-2px);
-        }
-        
-        .card-hover {
-            transition: all 0.4s cubic-bezier(0.4, 0.0, 0.2, 1);
-        }
-        
-        .card-hover:hover {
-            transform: translateY(-12px);
-            box-shadow: 0 25px 50px -12px rgb(249 115 22 / 0.3);
-        }
-        
-        .map-container {
-            height: 420px;
-            border-radius: 16px;
-            overflow: hidden;
-            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.3);
-        }
-        
-        .progress-circle {
-            background: conic-gradient(#f97316 0% 68%, #27272a 68% 100%);
-        }
-        
-        .gallery-img {
-            transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        
-        .gallery-img:hover {
-            transform: scale(1.08);
-        }
-        
-        .road-line {
-            position: absolute;
-            height: 3px;
-            background: linear-gradient(to right, #f97316, #eab308);
-            animation: roadMove 8s linear infinite;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Giấc Ngủ Và Thực Tại Của Bạn</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      line-height: 1.7;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 30px 20px;
+      background: linear-gradient(to bottom, #0f0c29, #302b63, #24243e);
+      color: #e0e0ff;
+    }
+    h1, h2, h3 {
+      color: #a78bfa;
+      text-shadow: 0 0 10px rgba(167,139,250,0.5);
+    }
+    h1 {
+      text-align: center;
+      font-size: 3em;
+      margin-bottom: 0.3em;
+    }
+    .subtitle {
+      text-align: center;
+      font-size: 1.3em;
+      color: #c3daff;
+      margin-bottom: 2em;
+    }
+    section {
+      background: rgba(20, 20, 60, 0.6);
+      border-radius: 16px;
+      padding: 25px;
+      margin: 30px 0;
+      border: 1px solid rgba(167,139,250,0.3);
+    }
+    ul {
+      padding-left: 25px;
+    }
+    li {
+      margin-bottom: 12px;
+    }
+    .highlight {
+      color: #ffdd57;
+      font-weight: bold;
+    }
+    .warning {
+      background: rgba(255, 99, 71, 0.15);
+      border-left: 5px solid #ff6347;
+      padding: 15px;
+      margin: 20px 0;
+      border-radius: 8px;
+    }
+    footer {
+      text-align: center;
+      margin-top: 50px;
+      color: #a0a0ff;
+      font-size: 0.9em;
+    }
+  </style>
 </head>
-<body class="bg-zinc-950 text-white overflow-x-hidden">
-    <!-- NAVBAR -->
-    <nav class="bg-zinc-900 border-b border-zinc-800 sticky top-0 z-50">
-        <div class="max-w-7xl mx-auto px-5">
-            <div class="flex items-center justify-between h-16">
-                <!-- Logo -->
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 bg-orange-500 rounded-2xl flex items-center justify-center text-2xl shadow-lg">
-                        🏍️
-                    </div>
-                    <div>
-                        <span class="font-bold text-2xl tracking-tighter">MOTO</span>
-                        <span class="text-orange-500 font-bold text-2xl tracking-tighter">15M</span>
-                        <span class="text-xs text-zinc-500 block -mt-1">102610</span>
-                    </div>
-                </div>
+<body>
 
-                <!-- Desktop Menu -->
-                <div class="hidden md:flex items-center gap-8 text-sm font-medium">
-                    <a href="#home" class="nav-link">TRANG CHỦ</a>
-                    <a href="#journey" class="nav-link">HÀNH TRÌNH</a>
-                    <a href="#map" class="nav-link">BẢN ĐỒ</a>
-                    <a href="#gallery" class="nav-link">THƯ VIỆN ẢNH</a>
-                    <a href="#diary" class="nav-link">NHẬT KÝ</a>
-                    <a href="#contact" class="nav-link">LIÊN HỆ</a>
-                </div>
+  <h1>Giấc Ngủ<br>Không chỉ là nghỉ ngơi</h1>
+  <p class="subtitle">Mà còn là thứ quyết định <span class="highlight">thực tại</span> bạn đang sống mỗi ngày</p>
 
-                <!-- Mobile Hamburger -->
-                <button id="mobile-menu-btn"
-                    class="md:hidden w-11 h-11 flex items-center justify-center text-3xl">
-                    <i class="fa-solid fa-bars"></i>
-                </button>
-            </div>
-        </div>
+  <section>
+    <h2>Giấc ngủ thực chất là gì?</h2>
+    <p>Khi bạn ngủ, não không "tắt". Nó chuyển sang chế độ <strong>duy trì và tái cấu trúc thực tại</strong>:</p>
+    <ul>
+      <li><strong>Non-REM (sâu)</strong>: Não thải độc (beta-amyloid), sửa chữa tế bào, củng cố trí nhớ dài hạn.</li>
+      <li><strong>REM (mơ)</strong>: Xử lý cảm xúc, sáng tạo kết nối mới, "mô phỏng" thực tại để luyện tập.</li>
+      <li>Giấc ngủ giúp não <strong>tái hiệu chỉnh</strong> cách bạn nhìn nhận thế giới khi thức dậy.</li>
+    </ul>
+  </section>
 
-        <!-- Mobile Menu -->
-        <div id="mobile-menu" class="hidden md:hidden bg-zinc-900 border-t border-zinc-800">
-            <div class="px-5 py-6 flex flex-col gap-5 text-lg font-medium">
-                <a href="#home" class="mobile-link">🏠 Trang chủ</a>
-                <a href="#journey" class="mobile-link">🛤️ Hành trình</a>
-                <a href="#map" class="mobile-link">🗺️ Bản đồ</a>
-                <a href="#gallery" class="mobile-link">📸 Ảnh</a>
-                <a href="#diary" class="mobile-link">📖 Nhật ký</a>
-                <a href="#contact" class="mobile-link">📬 Liên hệ</a>
-            </div>
-        </div>
-    </nav>
+  <section>
+    <h2>Giấc ngủ ảnh hưởng đến "thực tại" như thế nào?</h2>
+    <p>Thực tại không phải là thứ cố định — nó được bộ não <strong>xây dựng lại mỗi ngày</strong>. Giấc ngủ quyết định chất lượng của quá trình đó:</p>
+    
+    <h3>Khi ngủ ĐỦ (7–9 tiếng chất lượng)</h3>
+    <ul>
+      <li>Nhận thức chính xác hơn: Phân biệt cảm xúc khuôn mặt tốt, ít hiểu lầm người khác.</li>
+      <li>Cảm xúc ổn định: Ít cáu gắt, lo âu, dễ đồng cảm hơn.</li>
+      <li>Thời gian & không gian cảm giác bình thường.</li>
+      <li>Trí nhớ rõ ràng, ít <strong>ký ức giả</strong>.</li>
+      <li>Thực tại cảm thấy <strong>sáng sủa, logic, an toàn</strong>.</li>
+    </ul>
 
-    <!-- HERO -->
-    <section id="home" class="hero-bg h-screen flex items-center relative">
-        <div class="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-zinc-950"></div>
-        
-        <div class="max-w-5xl mx-auto px-5 text-center relative z-10">
-            <div class="inline-flex items-center gap-2 bg-black/60 backdrop-blur-md px-6 py-2 rounded-3xl mb-6 border border-orange-500/30">
-                <div class="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
-                <span class="text-sm font-medium tracking-widest">ĐANG TRÊN ĐƯỜNG • 68% VÒNG QUANH THẾ GIỚI</span>
-            </div>
-            
-            <h1 class="text-6xl md:text-8xl font-bold leading-none tracking-tighter mb-4">
-                VÒNG QUANH<br><span class="text-orange-500">THẾ GIỚI</span>
-            </h1>
-            <p class="text-2xl md:text-3xl text-zinc-300 font-light mb-10">Trên chiếc xe máy BKS 15M-102610</p>
-            
-            <div class="flex flex-col sm:flex-row gap-4 justify-center">
-                <a href="#map" 
-                   class="bg-orange-500 hover:bg-orange-600 transition-all px-10 py-6 rounded-3xl font-bold text-xl flex items-center justify-center gap-3 group">
-                    XEM BẢN ĐỒ THỰC TẾ
-                    <i class="fa-solid fa-arrow-right group-active:rotate-45 transition"></i>
-                </a>
-                <a href="#diary" 
-                   class="border-2 border-white hover:bg-white hover:text-black transition-all px-10 py-6 rounded-3xl font-bold text-xl">
-                    ĐỌC NHẬT KÝ
-                </a>
-            </div>
-            
-            <div class="mt-16 flex justify-center gap-8 text-sm">
-                <div class="text-center">
-                    <div class="text-4xl font-bold text-orange-500">42</div>
-                    <div class="text-zinc-400 text-xs tracking-widest">QUỐC GIA</div>
-                </div>
-                <div class="text-center">
-                    <div class="text-4xl font-bold text-orange-500">27.840</div>
-                    <div class="text-zinc-400 text-xs tracking-widest">KM ĐÃ ĐI</div>
-                </div>
-                <div class="text-center">
-                    <div class="text-4xl font-bold text-orange-500">14</div>
-                    <div class="text-zinc-400 text-xs tracking-widest">THÁNG</div>
-                </div>
-            </div>
-        </div>
+    <h3>Khi thiếu ngủ (dưới 6 tiếng hoặc kém chất lượng)</h3>
+    <ul>
+      <li>Não mất khả năng ức chế amygdala → mọi thứ dễ bị coi là <strong>đe dọa</strong> hơn (người lạ trung tính trông thù địch).</li>
+      <li>Nhận diện cảm xúc sai lệch → bạn cảm thấy mọi người <strong>lạnh lùng, xa cách</strong> hơn thực tế.</li>
+      <li>Ảo giác nhẹ (sau 24–36h thiếu ngủ): Nhìn thấy bóng, nghe tiếng động không có.</li>
+      <li>Thời gian bị méo mó: Đêm dài vô tận, ngày trôi chậm hoặc nhanh bất thường.</li>
+      <li>Tăng nguy cơ ký ức giả, paranoia nhẹ, cảm giác thực tại <strong>mờ nhạt, đáng sợ</strong>.</li>
+    </ul>
 
-        <!-- Scroll indicator -->
-        <div class="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-xs tracking-widest">
-            <div class="animate-bounce">SCROLL</div>
-            <i class="fa-solid fa-chevron-down text-2xl"></i>
-        </div>
-    </section>
+    <div class="warning">
+      <strong>Nghiêm trọng hơn (thiếu ngủ nhiều ngày):</strong><br>
+      Ảo giác rõ ràng, hoang tưởng, mất liên hệ thực tại (giống triệu chứng tâm thần phân liệt tạm thời). Nhiều nghiên cứu cho thấy sau 3–4 ngày không ngủ, não gần như không phân biệt được tưởng tượng và thực tế.
+    </div>
+  </section>
 
-    <!-- JOURNEY SUMMARY -->
-    <section id="journey" class="py-24 bg-zinc-900">
-        <div class="max-w-7xl mx-auto px-5">
-            <div class="text-center mb-16">
-                <span class="text-orange-500 text-sm font-bold tracking-[4px]">HÀNH TRÌNH ĐANG TIẾP DIỄN</span>
-                <h2 class="text-5xl font-bold mt-3">Từ Hà Nội đến mọi góc Trái Đất</h2>
-            </div>
-            
-            <div class="grid md:grid-cols-3 gap-8">
-                <!-- Card 1 -->
-                <div class="card-hover bg-zinc-800 rounded-3xl p-8">
-                    <div class="flex justify-between items-start mb-8">
-                        <div>
-                            <div class="text-6xl">🇻🇳</div>
-                            <div class="mt-4 font-bold text-2xl">Giai đoạn 1</div>
-                            <div class="text-orange-500">Đông Nam Á • 8.420 km</div>
-                        </div>
-                        <div class="text-right">
-                            <div class="text-5xl font-mono text-zinc-500">01</div>
-                        </div>
-                    </div>
-                    <p class="text-zinc-400">Hà Nội → Thái Lan → Lào → Campuchia → Malaysia → Indonesia. Bắt đầu từ tháng 1/2025.</p>
-                    <div class="mt-6 h-1.5 bg-orange-500 rounded-full w-3/4"></div>
-                </div>
+  <section>
+    <h2>Tóm lại: Giấc ngủ chính là "bộ lọc thực tại"</h2>
+    <p>
+      Ngủ tốt → Thực tại rõ ràng, tích cực, đáng tin cậy.<br>
+      Ngủ kém → Thực tại méo mó, tiêu cực, đáng nghi ngờ.<br><br>
+      <strong>Câu hỏi quan trọng nhất mỗi tối không phải "Hôm nay mình sống thế nào?", mà là:</strong><br>
+      <em>"Tối nay mình có cho phép não tái tạo một thực tại tốt đẹp hơn không?"</em>
+    </p>
+  </section>
 
-                <!-- Card 2 -->
-                <div class="card-hover bg-zinc-800 rounded-3xl p-8">
-                    <div class="flex justify-between items-start mb-8">
-                        <div>
-                            <div class="text-6xl">🌍</div>
-                            <div class="mt-4 font-bold text-2xl">Giai đoạn 2</div>
-                            <div class="text-orange-500">Châu Âu & Trung Á • 11.300 km</div>
-                        </div>
-                        <div class="text-right">
-                            <div class="text-5xl font-mono text-zinc-500">02</div>
-                        </div>
-                    </div>
-                    <p class="text-zinc-400">Thổ Nhĩ Kỳ → Hy Lạp → Ý → Pháp → Đức → Ba Lan → Nga. Đang ở đây!</p>
-                    <div class="mt-6 h-1.5 bg-yellow-400 rounded-full w-2/4"></div>
-                </div>
+  <footer>
+    Dựa trên các nghiên cứu từ UC Berkeley, Harvard, Stanford và nhiều tạp chí thần kinh học uy tín.<br>
+    Hãy ngủ đủ — đó là cách mạnh mẽ nhất để thay đổi thế giới bạn đang sống.
+  </footer>
 
-                <!-- Card 3 -->
-                <div class="card-hover bg-zinc-800 rounded-3xl p-8">
-                    <div class="flex justify-between items-start mb-8">
-                        <div>
-                            <div class="text-6xl">🇺🇸</div>
-                            <div class="mt-4 font-bold text-2xl">Giai đoạn 3</div>
-                            <div class="text-orange-500">Châu Mỹ & Châu Úc • Còn lại</div>
-                        </div>
-                        <div class="text-right">
-                            <div class="text-5xl font-mono text-zinc-500">03</div>
-                        </div>
-                    </div>
-                    <p class="text-zinc-400">Mỹ → Canada → Mexico → Nam Mỹ → Úc → New Zealand. Dự kiến kết thúc 2027.</p>
-                    <div class="mt-6 h-1.5 bg-zinc-600 rounded-full w-1/4"></div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- INTERACTIVE MAP -->
-    <section id="map" class="py-24 bg-black">
-        <div class="max-w-7xl mx-auto px-5">
-            <div class="flex flex-col lg:flex-row gap-12 items-center">
-                <div class="lg:w-5/12">
-                    <div class="sticky top-24">
-                        <span class="uppercase text-orange-500 text-sm font-bold">BẢN ĐỒ THỰC TẾ</span>
-                        <h2 class="text-5xl font-bold mt-4 leading-tight">Theo dõi vị trí xe 15M-102610 ngay lúc này</h2>
-                        <p class="mt-6 text-zinc-400 text-lg">Bản đồ tương tác Leaflet • Vị trí giả lập hiện tại: Istanbul, Thổ Nhĩ Kỳ</p>
-                        
-                        <div class="mt-10 flex items-center gap-6 bg-zinc-900 rounded-3xl p-6">
-                            <div class="progress-circle w-28 h-28 rounded-3xl flex items-center justify-center text-4xl font-bold relative">
-                                <div class="bg-zinc-900 w-20 h-20 rounded-3xl flex items-center justify-center text-orange-500">68%</div>
-                            </div>
-                            <div>
-                                <div class="text-sm text-zinc-400">ĐÃ HOÀN THÀNH</div>
-                                <div class="text-6xl font-bold text-white">68%</div>
-                                <div class="text-emerald-400 text-sm flex items-center gap-1 mt-2">
-                                    <i class="fa-solid fa-motorcycle"></i> 
-                                    <span>27.840 km / 40.000 km mục tiêu</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Map -->
-                <div class="lg:w-7/12 w-full">
-                    <div id="map-container" class="map-container"></div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- GALLERY -->
-    <section id="gallery" class="py-24 bg-zinc-900">
-        <div class="max-w-7xl mx-auto px-5">
-            <div class="flex justify-between items-end mb-12">
-                <div>
-                    <span class="text-orange-500 text-sm font-bold">THƯ VIỆN ẢNH</span>
-                    <h2 class="text-5xl font-bold">Những khoảnh khắc đẹp nhất</h2>
-                </div>
-                <a href="#" onclick="alert('Chức năng xem full gallery đang được phát triển!')" 
-                   class="text-orange-500 hover:text-orange-400 flex items-center gap-2 text-sm font-medium">
-                    XEM TẤT CẢ <i class="fa-solid fa-arrow-right"></i>
-                </a>
-            </div>
-            
-            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                <!-- Image 1 -->
-                <div class="aspect-square overflow-hidden rounded-3xl">
-                    <img src="https://picsum.photos/id/1016/800/800" 
-                         class="gallery-img w-full h-full object-cover" alt="Moto trên đèo Hải Vân">
-                </div>
-                <!-- Image 2 -->
-                <div class="aspect-square overflow-hidden rounded-3xl">
-                    <img src="https://picsum.photos/id/201/800/800" 
-                         class="gallery-img w-full h-full object-cover" alt="Moto qua sa mạc">
-                </div>
-                <!-- Image 3 -->
-                <div class="aspect-square overflow-hidden rounded-3xl">
-                    <img src="https://picsum.photos/id/251/800/800" 
-                         class="gallery-img w-full h-full object-cover" alt="Moto ở châu Âu">
-                </div>
-                <!-- Image 4 -->
-                <div class="aspect-square overflow-hidden rounded-3xl">
-                    <img src="https://picsum.photos/id/29/800/800" 
-                         class="gallery-img w-full h-full object-cover" alt="Moto bên biển">
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- DIARY -->
-    <section id="diary" class="py-24 bg-black">
-        <div class="max-w-5xl mx-auto px-5">
-            <div class="text-center mb-16">
-                <h2 class="text-5xl font-bold">Nhật ký hành trình</h2>
-            </div>
-            
-            <div class="space-y-12">
-                <!-- Entry 1 -->
-                <div class="flex flex-col md:flex-row gap-8 bg-zinc-900 rounded-3xl overflow-hidden">
-                    <div class="md:w-2/5">
-                        <img src="https://picsum.photos/id/866/800/600" class="w-full h-full object-cover" alt="">
-                    </div>
-                    <div class="md:w-3/5 p-8 flex flex-col justify-center">
-                        <div class="flex items-center gap-3 text-xs text-zinc-500">
-                            <span>15 THÁNG 3 2026</span>
-                            <span class="w-2 h-2 bg-orange-500 rounded-full"></span>
-                            <span>Istanbul, Thổ Nhĩ Kỳ</span>
-                        </div>
-                        <h3 class="text-3xl font-bold mt-4">“Biển Bosphorus và những chiếc xe máy cũ kỹ”</h3>
-                        <p class="mt-6 text-zinc-400 leading-relaxed">
-                            Hôm nay mình đã vượt qua 300 km từ Bulgaria sang Thổ Nhĩ Kỳ. 
-                            Chiếc 15M-102610 vẫn khỏe re dù đã chạy hơn 27.000 km. 
-                            Người dân địa phương rất thân thiện với biker Việt Nam!
-                        </p>
-                        <div class="mt-auto pt-8 flex items-center gap-3 text-sm">
-                            <div class="flex -space-x-3">
-                                <div class="w-8 h-8 bg-zinc-700 rounded-2xl border-2 border-zinc-900 flex items-center justify-center text-xs">🇹🇷</div>
-                            </div>
-                            <span class="text-orange-400">+12 bình luận</span>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Entry 2 -->
-                <div class="flex flex-col md:flex-row-reverse gap-8 bg-zinc-900 rounded-3xl overflow-hidden">
-                    <div class="md:w-2/5">
-                        <img src="https://picsum.photos/id/1018/800/600" class="w-full h-full object-cover" alt="">
-                    </div>
-                    <div class="md:w-3/5 p-8 flex flex-col justify-center">
-                        <div class="flex items-center gap-3 text-xs text-zinc-500">
-                            <span>02 THÁNG 2 2026</span>
-                            <span class="w-2 h-2 bg-orange-500 rounded-full"></span>
-                            <span>Athens, Hy Lạp</span>
-                        </div>
-                        <h3 class="text-3xl font-bold mt-4">“Acropolis dưới ánh hoàng hôn”</h3>
-                        <p class="mt-6 text-zinc-400 leading-relaxed">
-                            Sau 3 tuần liên tục trên đường, mình đã đến được Hy Lạp – nơi khai sinh văn minh phương Tây. 
-                            Xe moto đậu ngay dưới chân đền Parthenon thật là một khoảnh khắc khó quên.
-                        </p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- CONTACT -->
-    <section id="contact" class="py-24 bg-zinc-900">
-        <div class="max-w-4xl mx-auto px-5">
-            <div class="bg-zinc-800 rounded-3xl p-12">
-                <h2 class="text-5xl font-bold text-center mb-12">Theo dõi hành trình cùng mình</h2>
-                
-                <form id="contact-form" class="grid md:grid-cols-2 gap-6">
-                    <div>
-                        <label class="block text-sm text-zinc-400 mb-2">Họ và tên</label>
-                        <input type="text" id="name" 
-                               class="w-full bg-black border border-zinc-700 rounded-2xl px-6 py-6 focus:outline-none focus:border-orange-500 transition"
-                               placeholder="Nguyễn Giang" required>
-                    </div>
-                    <div>
-                        <label class="block text-sm text-zinc-400 mb-2">Email</label>
-                        <input type="email" id="email" 
-                               class="w-full bg-black border border-zinc-700 rounded-2xl px-6 py-6 focus:outline-none focus:border-orange-500 transition"
-                               placeholder="ban@email.com" required>
-                    </div>
-                    <div class="md:col-span-2">
-                        <label class="block text-sm text-zinc-400 mb-2">Bạn muốn hỏi gì?</label>
-                        <textarea id="message" rows="5"
-                                  class="w-full bg-black border border-zinc-700 rounded-3xl px-6 py-6 focus:outline-none focus:border-orange-500 transition resize-none"
-                                  placeholder="Mình muốn biết điều kiện thời tiết ở Pháp tháng sau như thế nào..."></textarea>
-                    </div>
-                    
-                    <div class="md:col-span-2">
-                        <button type="submit"
-                                class="w-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 transition-all py-7 rounded-3xl font-bold text-xl flex items-center justify-center gap-3">
-                            <span>GỬI TIN NHẮN</span>
-                            <i class="fa-solid fa-paper-plane"></i>
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </section>
-
-    <!-- FOOTER -->
-    <footer class="bg-black py-16 border-t border-zinc-800">
-        <div class="max-w-7xl mx-auto px-5 text-center">
-            <div class="flex items-center justify-center gap-3 text-2xl mb-6">
-                🏍️ <span class="font-bold">15M-102610</span>
-            </div>
-            <p class="text-zinc-500 text-sm">Hành trình không có điểm dừng • 2025 - 2027</p>
-            <p class="mt-8 text-xs text-zinc-600">© Nguyễn Giang • Built with ❤️ & Tailwind + Leaflet</p>
-        </div>
-    </footer>
-
-    <script>
-        // Tailwind script run
-        function initTailwind() {
-            // Already loaded via CDN
-        }
-
-        // Mobile menu toggle
-        const mobileBtn = document.getElementById('mobile-menu-btn');
-        const mobileMenu = document.getElementById('mobile-menu');
-        
-        mobileBtn.addEventListener('click', () => {
-            mobileMenu.classList.toggle('hidden');
-            const icon = mobileBtn.querySelector('i');
-            icon.classList.toggle('fa-bars');
-            icon.classList.toggle('fa-xmark');
-        });
-
-        // Close mobile menu when clicking links
-        document.querySelectorAll('.mobile-link').forEach(link => {
-            link.addEventListener('click', () => {
-                mobileMenu.classList.add('hidden');
-                const icon = mobileBtn.querySelector('i');
-                icon.classList.add('fa-bars');
-                icon.classList.remove('fa-xmark');
-            });
-        });
-
-        // Smooth scroll for all nav links
-        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-            anchor.addEventListener('click', function(e) {
-                if (this.getAttribute('href') !== '#') {
-                    e.preventDefault();
-                    const target = document.querySelector(this.getAttribute('href'));
-                    if (target) {
-                        target.scrollIntoView({
-                            behavior: 'smooth',
-                            block: 'start'
-                        });
-                    }
-                }
-            });
-        });
-
-        // Leaflet Map
-        function initMap() {
-            const map = L.map('map-container').setView([41.0139, 28.9553], 6); // Istanbul center
-            
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; OpenStreetMap contributors'
-            }).addTo(map);
-            
-            // Route polyline (fake)
-            const routePoints = [
-                [21.0285, 105.8048], // Hanoi
-                [13.7563, 100.5018], // Bangkok
-                [41.0139, 28.9553],  // Istanbul
-                [37.9838, 23.7275],  // Athens
-                [48.8566, 2.3522],   // Paris
-                [40.7128, -74.0060]  // New York
-            ];
-            
-            L.polyline(routePoints, {
-                color: '#f97316',
-                weight: 5,
-                opacity: 0.8,
-                lineJoin: 'round'
-            }).addTo(map);
-            
-            // Markers
-            const markers = [
-                {pos: [21.0285, 105.8048], popup: 'Hà Nội - Điểm xuất phát'},
-                {pos: [41.0139, 28.9553], popup: 'Hiện tại: Istanbul, Thổ Nhĩ Kỳ 🏍️'},
-                {pos: [48.8566, 2.3522], popup: 'Sắp đến: Paris'},
-                {pos: [40.7128, -74.0060], popup: 'Mục tiêu: New York'}
-            ];
-            
-            markers.forEach(m => {
-                L.marker(m.pos).addTo(map)
-                    .bindPopup(`<b>${m.popup}</b>`, {closeButton: false})
-                    .openPopup();
-            });
-        }
-
-        // Form submit
-        document.getElementById('contact-form').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const name = document.getElementById('name').value;
-            alert(`Cảm ơn ${name} đã gửi tin nhắn! Mình sẽ trả lời trong vòng 24h. 🏍️`);
-            this.reset();
-        });
-
-        // Keyboard shortcut: Press "M" to jump to map
-        document.addEventListener('keydown', (e) => {
-            if (e.key.toLowerCase() === 'm') {
-                document.getElementById('map').scrollIntoView({ behavior: 'smooth' });
-            }
-        });
-
-        // Initialize everything
-        window.onload = function() {
-            initMap();
-            
-            // Fake live counter (km)
-            let km = 27840;
-            setInterval(() => {
-                km += Math.floor(Math.random() * 3) + 1;
-                // Could update DOM if wanted
-            }, 8000);
-            
-            console.log('%c✅ Website MOTO 15M-102610 đã sẵn sàng!', 'color:#f97316; font-size:14px');
-        };
-    </script>
 </body>
 </html>
