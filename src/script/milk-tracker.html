@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Milk Tracker Pro</title>
+  
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600;700&display=swap" rel="stylesheet">
+  
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
+
+  <style>
+    :root {
+      --primary: #2ecc71;
+      --secondary: #27ae60;
+      --danger: #e74c3c;
+      --bg: #f0f2f5;
+      --text: #2c3e50;
+    }
+
+    body {
+      font-family: 'Quicksand', sans-serif;
+      background: linear-gradient(135deg, #d4fc79 0%, #96e6a1 100%);
+      margin: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      color: var(--text);
+    }
+
+    /* Màn hình Đăng nhập */
+    #login-screen {
+      background: rgba(255, 255, 255, 0.9);
+      padding: 40px;
+      border-radius: 20px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+      text-align: center;
+      width: 320px;
+    }
+
+    #login-screen i {
+      font-size: 50px;
+      color: var(--primary);
+      margin-bottom: 20px;
+    }
+
+    /* Giao diện chính */
+    .container {
+      max-width: 500px;
+      width: 90%;
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 24px;
+      padding: 30px;
+      box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+      display: none; /* Ẩn lúc đầu */
+      margin: 20px 0;
+    }
+
+    h1 {
+      text-align: center;
+      color: var(--secondary);
+      font-size: 24px;
+      margin-bottom: 25px;
+    }
+
+    .form-group {
+      position: relative;
+      margin-bottom: 20px;
+    }
+
+    .form-group i {
+      position: absolute;
+      left: 15px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #95a5a6;
+    }
+
+    input {
+      width: 100%;
+      padding: 14px 14px 14px 45px;
+      font-size: 16px;
+      border: 2px solid #eee;
+      border-radius: 12px;
+      box-sizing: border-box;
+      transition: 0.3s;
+      outline: none;
+    }
+
+    input:focus {
+      border-color: var(--primary);
+    }
+
+    button {
+      width: 100%;
+      padding: 14px;
+      font-size: 16px;
+      font-weight: 600;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: 0.3s;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-primary:hover { background: var(--secondary); transform: translateY(-2px); }
+    
+    .btn-danger { 
+      background: #fee; 
+      color: var(--danger); 
+      padding: 8px 12px;
+      width: auto;
+    }
+    .btn-danger:hover { background: var(--danger); color: white; }
+
+    .total-card {
+      background: linear-gradient(to right, var(--primary), var(--secondary));
+      color: white;
+      padding: 20px;
+      border-radius: 15px;
+      text-align: center;
+      margin: 20px 0;
+    }
+
+    .total-card span { font-size: 32px; font-weight: 700; }
+
+    .list { margin-top: 20px; max-height: 400px; overflow-y: auto; }
+
+    .item {
+      background: white;
+      padding: 15px;
+      margin-bottom: 12px;
+      border-radius: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border: 1px solid #f0f0f0;
+      animation: fadeIn 0.5s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .item-info strong { color: var(--secondary); font-size: 18px; }
+    .item-info div { font-size: 12px; color: #7f8c8d; margin-top: 4px; }
+
+    .empty { text-align: center; color: #bdc3c7; padding: 30px; }
+  </style>
+</head>
+<body>
+
+<div id="login-screen">
+  <i class="fas fa-user-lock"></i>
+  <h2>Đăng nhập</h2>
+  <div class="form-group">
+    <i class="fas fa-key"></i>
+    <input type="password" id="passInput" placeholder="Nhập mật khẩu..." onkeypress="handleLogin(event)">
+  </div>
+  <button class="btn-primary" onclick="checkLogin()">Vào hệ thống</button>
+</div>
+
+<div class="container" id="main-app">
+  <h1><i class="fas fa-glass-whiskey"></i> Ghi Chú Lấy Sữa</h1>
+
+  <div class="form-group">
+    <i class="fas fa-box-open"></i>
+    <input type="number" id="quantity" min="1" placeholder="Số hộp sữa lấy..." required />
+  </div>
+
+  <button class="btn-primary" onclick="saveRecord()">
+    <i class="fas fa-plus-circle"></i> Ghi lại ngay
+  </button>
+
+  <div class="total-card">
+    <p style="margin:0; font-size: 14px; opacity: 0.9;">TỔNG SỐ HỘP</p>
+    <span id="totalBox">0</span>
+  </div>
+
+  <div class="list" id="milkList">
+    <div class="empty">Đang tải dữ liệu...</div>
+  </div>
+</div>
+
+<script>
+  // Cấu hình Firebase
+  const firebaseConfig = {
+    databaseURL: "https://project-doidoi-default-rtdb.asia-southeast1.firebasedatabase.app"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+  const milkRef = db.ref('milk_records');
+
+  // Xử lý Login
+  function handleLogin(e) { if(e.key === 'Enter') checkLogin(); }
+  
+  function checkLogin() {
+    const pass = document.getElementById('passInput').value;
+    if (pass === "123456") {
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('main-app').style.display = 'block';
+      loadData();
+    } else {
+      alert("Sai mật khẩu rồi bạn ơi!");
+    }
+  }
+
+  // Load dữ liệu
+  function loadData() {
+    milkRef.on('value', (snapshot) => {
+      const milkList = document.getElementById('milkList');
+      const totalEl = document.getElementById('totalBox');
+      milkList.innerHTML = '';
+      let total = 0;
+
+      if (!snapshot.exists()) {
+        milkList.innerHTML = '<div class="empty">Chưa có dữ liệu nào.</div>';
+        totalEl.textContent = '0';
+        return;
+      }
+
+      const records = [];
+      snapshot.forEach(child => {
+        const data = child.val();
+        data.id = child.key;
+        records.push(data);
+        total += parseInt(data.quantity) || 0;
+      });
+
+      records.sort((a, b) => b.timestamp - a.timestamp);
+
+      records.forEach(rec => {
+        const date = new Date(rec.timestamp).toLocaleString('vi-VN', {
+          day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'
+        });
+
+        const item = document.createElement('div');
+        item.className = 'item';
+        item.innerHTML = `
+          <div class="item-info">
+            <strong><i class="fas fa-check-circle"></i> ${rec.quantity} hộp</strong>
+            <div><i class="far fa-clock"></i> ${date}</div>
+          </div>
+          <button class="btn-danger" onclick="deleteRecord('${rec.id}')">
+            <i class="fas fa-trash-alt"></i>
+          </button>
+        `;
+        milkList.appendChild(item);
+      });
+
+      totalEl.textContent = total.toLocaleString('vi-VN');
+    });
+  }
+
+  // Lưu & Xóa
+  window.saveRecord = () => {
+    const input = document.getElementById('quantity');
+    const qty = parseInt(input.value);
+    if (!qty || qty < 1) return alert('Nhập số lượng hợp lệ!');
+
+    milkRef.push({ quantity: qty, timestamp: Date.now() });
+    input.value = '';
+    input.focus();
+  };
+
+  window.deleteRecord = (id) => {
+    if (confirm('Xóa bản ghi này?')) milkRef.child(id).remove();
+  };
+</script>
+
+</body>
+  </html>
+  
