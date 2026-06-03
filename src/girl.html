@@ -25,76 +25,126 @@
 </head>
 <body class="bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 min-h-screen transition-colors">
 
-  <header class="bg-white dark:bg-gray-800 shadow sticky top-0 z-10">
-    <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-      <h1 class="text-2xl font-bold text-primary">Quản lý Dòng Tiền (Cash Flow)</h1>
-      <button id="themeToggle" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">🌙</button>
+  <!-- LOGIN SCREEN -->
+  <div id="loginScreen" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-8 w-full max-w-md">
+      <div class="text-center mb-8">
+        <h1 class="text-3xl font-bold text-primary mb-2">Cash Flow Tracker</h1>
+        <p class="text-gray-500 dark:text-gray-400" id="loginTitle">Đăng nhập để tiếp tục</p>
+      </div>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm mb-1" id="usernameLabel">Tên người dùng</label>
+          <input type="text" id="username" value="xGame" 
+                 class="w-full px-4 py-3 border rounded-xl dark:bg-gray-700 dark:border-gray-600 focus:outline-none focus:border-primary" />
+        </div>
+        <div>
+          <label class="block text-sm mb-1" id="passwordLabel">Mật khẩu</label>
+          <input type="password" id="password" value="ndgiang135"
+                 class="w-full px-4 py-3 border rounded-xl dark:bg-gray-700 dark:border-gray-600 focus:outline-none focus:border-primary" />
+        </div>
+        <button onclick="login()" 
+                class="w-full bg-primary hover:bg-emerald-700 text-white font-medium py-3.5 rounded-xl transition">
+          <span id="loginBtn">Đăng nhập</span>
+        </button>
+        <p id="loginMessage" class="text-center text-sm text-red-500 hidden"></p>
+      </div>
+      <p class="text-center text-xs text-gray-400 mt-6">Demo Account: <strong>xGame</strong> / <strong>ndgiang135</strong></p>
     </div>
-  </header>
+  </div>
 
-  <main class="max-w-7xl mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
-    <!-- Summary Cards -->
-    <div class="lg:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-      <div class="bg-white dark:bg-gray-800 rounded-xl shadow p-6 text-center">
-        <p class="text-sm text-gray-500 dark:text-gray-400">Tổng Thu</p>
-        <p id="totalIncome" class="text-3xl font-bold text-green-600">0 ₫</p>
+  <!-- MAIN APP -->
+  <div id="mainApp" class="hidden">
+    <header class="bg-white dark:bg-gray-800 shadow sticky top-0 z-10">
+      <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+        <h1 class="text-2xl font-bold text-primary" id="appTitle">Quản lý Dòng Tiền</h1>
+        
+        <div class="flex items-center gap-4">
+          <!-- Language Switcher -->
+          <select id="langSelect" onchange="changeLanguage()" 
+                  class="bg-transparent border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-1 text-sm focus:outline-none">
+            <option value="vi">🇻🇳 VI</option>
+            <option value="en">🇬🇧 EN</option>
+            <option value="ko">🇰🇷 KO</option>
+            <option value="zh">🇨🇳 ZH</option>
+          </select>
+          
+          <button id="themeToggle" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">🌙</button>
+          <button onclick="logout()" 
+                  class="px-4 py-1.5 text-sm border border-red-300 dark:border-red-700 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg">
+            Đăng xuất
+          </button>
+        </div>
       </div>
-      <div class="bg-white dark:bg-gray-800 rounded-xl shadow p-6 text-center">
-        <p class="text-sm text-gray-500 dark:text-gray-400">Tổng Chi</p>
-        <p id="totalExpense" class="text-3xl font-bold text-red-600">0 ₫</p>
-      </div>
-      <div class="bg-white dark:bg-gray-800 rounded-xl shadow p-6 text-center">
-        <p class="text-sm text-gray-500 dark:text-gray-400">Dòng tiền ròng</p>
-        <p id="netCashFlow" class="text-3xl font-bold">0 ₫</p>
-      </div>
-    </div>
+    </header>
 
-    <!-- Chart & Form -->
-    <div class="lg:col-span-2 space-y-6">
-      <div class="bg-white dark:bg-gray-800 rounded-xl shadow p-6">
-        <h2 class="text-lg font-semibold mb-4">Biểu đồ Thu/Chi</h2>
-        <canvas id="cashChart" height="200"></canvas>
+    <main class="max-w-7xl mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <!-- Summary Cards -->
+      <div class="lg:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow p-6 text-center">
+          <p class="text-sm text-gray-500 dark:text-gray-400" id="totalIncomeLabel">Tổng Thu</p>
+          <p id="totalIncome" class="text-3xl font-bold text-green-600">0 ₫</p>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow p-6 text-center">
+          <p class="text-sm text-gray-500 dark:text-gray-400" id="totalExpenseLabel">Tổng Chi</p>
+          <p id="totalExpense" class="text-3xl font-bold text-red-600">0 ₫</p>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow p-6 text-center">
+          <p class="text-sm text-gray-500 dark:text-gray-400" id="netCashFlowLabel">Dòng tiền ròng</p>
+          <p id="netCashFlow" class="text-3xl font-bold">0 ₫</p>
+        </div>
       </div>
 
-      <div class="bg-white dark:bg-gray-800 rounded-xl shadow p-6">
-        <h2 class="text-lg font-semibold mb-4">Thêm giao dịch mới</h2>
-        <form id="transactionForm" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label class="block text-sm mb-1">Mô tả</label>
-            <input type="text" id="description" required class="w-full px-4 py-2 border rounded dark:bg-gray-700 dark:border-gray-600" placeholder="VD: Lương tháng 2" />
-          </div>
-          <div>
-            <label class="block text-sm mb-1">Số tiền (VNĐ)</label>
-            <input type="number" id="amount" required min="1" class="w-full px-4 py-2 border rounded dark:bg-gray-700 dark:border-gray-600" placeholder="1000000" />
-          </div>
-          <div>
-            <label class="block text-sm mb-1">Loại</label>
-            <select id="type" class="w-full px-4 py-2 border rounded dark:bg-gray-700 dark:border-gray-600">
-              <option value="income">Thu nhập</option>
-              <option value="expense">Chi tiêu</option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-sm mb-1">Ngày</label>
-            <input type="date" id="date" required class="w-full px-4 py-2 border rounded dark:bg-gray-700 dark:border-gray-600" value="" />
-          </div>
-          <div class="md:col-span-2 flex justify-end gap-3">
-            <button type="button" id="cancelEdit" class="hidden px-5 py-2 border rounded hover:bg-gray-100 dark:hover:bg-gray-700">Hủy</button>
-            <button type="submit" class="bg-primary text-white px-6 py-2 rounded hover:bg-emerald-700">Lưu</button>
-          </div>
-          <input type="hidden" id="editId" />
-        </form>
-      </div>
-    </div>
+      <!-- Chart & Form -->
+      <div class="lg:col-span-2 space-y-6">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow p-6">
+          <h2 class="text-lg font-semibold mb-4" id="chartTitle">Biểu đồ Thu/Chi</h2>
+          <canvas id="cashChart" height="200"></canvas>
+        </div>
 
-    <!-- Transactions List -->
-    <div class="space-y-6">
-      <div class="bg-white dark:bg-gray-800 rounded-xl shadow p-5">
-        <h2 class="text-lg font-semibold mb-3">Danh sách giao dịch</h2>
-        <div id="transactionList" class="space-y-3 max-h-96 overflow-y-auto"></div>
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow p-6">
+          <h2 class="text-lg font-semibold mb-4" id="formTitle">Thêm giao dịch mới</h2>
+          <form id="transactionForm" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm mb-1" id="descLabel">Mô tả</label>
+              <input type="text" id="description" required 
+                     class="w-full px-4 py-2 border rounded dark:bg-gray-700 dark:border-gray-600" placeholder="VD: Lương tháng 2" />
+            </div>
+            <div>
+              <label class="block text-sm mb-1" id="amountLabel">Số tiền (VNĐ)</label>
+              <input type="number" id="amount" required min="1" 
+                     class="w-full px-4 py-2 border rounded dark:bg-gray-700 dark:border-gray-600" placeholder="1000000" />
+            </div>
+            <div>
+              <label class="block text-sm mb-1" id="typeLabel">Loại</label>
+              <select id="type" class="w-full px-4 py-2 border rounded dark:bg-gray-700 dark:border-gray-600">
+                <option value="income" id="optIncome">Thu nhập</option>
+                <option value="expense" id="optExpense">Chi tiêu</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm mb-1" id="dateLabel">Ngày</label>
+              <input type="date" id="date" required 
+                     class="w-full px-4 py-2 border rounded dark:bg-gray-700 dark:border-gray-600" />
+            </div>
+            <div class="md:col-span-2 flex justify-end gap-3">
+              <button type="button" id="cancelEdit" class="hidden px-5 py-2 border rounded hover:bg-gray-100 dark:hover:bg-gray-700">Hủy</button>
+              <button type="submit" class="bg-primary text-white px-6 py-2 rounded hover:bg-emerald-700" id="saveBtn">Lưu</button>
+            </div>
+            <input type="hidden" id="editId" />
+          </form>
+        </div>
       </div>
-    </div>
-  </main>
+
+      <!-- Transactions List -->
+      <div class="space-y-6">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow p-5">
+          <h2 class="text-lg font-semibold mb-3" id="listTitle">Danh sách giao dịch</h2>
+          <div id="transactionList" class="space-y-3 max-h-96 overflow-y-auto"></div>
+        </div>
+      </div>
+    </main>
+  </div>
 
   <script type="module">
     import { ref, onValue, set, update, remove, push } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
@@ -102,6 +152,179 @@
     const db = window.db;
     const transRef = ref(db, 'cashflow/transactions');
 
+    // Translations
+    const translations = {
+      vi: {
+        appTitle: "Quản lý Dòng Tiền",
+        loginTitle: "Đăng nhập để tiếp tục",
+        usernameLabel: "Tên người dùng",
+        passwordLabel: "Mật khẩu",
+        loginBtn: "Đăng nhập",
+        totalIncomeLabel: "Tổng Thu",
+        totalExpenseLabel: "Tổng Chi",
+        netCashFlowLabel: "Dòng tiền ròng",
+        chartTitle: "Biểu đồ Thu/Chi",
+        formTitle: "Thêm giao dịch mới",
+        descLabel: "Mô tả",
+        amountLabel: "Số tiền (VNĐ)",
+        typeLabel: "Loại",
+        optIncome: "Thu nhập",
+        optExpense: "Chi tiêu",
+        dateLabel: "Ngày",
+        saveBtn: "Lưu",
+        listTitle: "Danh sách giao dịch",
+        cancel: "Hủy",
+        edit: "Sửa",
+        delete: "Xóa",
+        noTrans: "Chưa có giao dịch nào. Hãy thêm mới!",
+        successAdd: "Thêm giao dịch thành công!",
+        successUpdate: "Cập nhật thành công!",
+        confirmDelete: "Xóa giao dịch này?"
+      },
+      en: {
+        appTitle: "Cash Flow Tracker",
+        loginTitle: "Login to continue",
+        usernameLabel: "Username",
+        passwordLabel: "Password",
+        loginBtn: "Login",
+        totalIncomeLabel: "Total Income",
+        totalExpenseLabel: "Total Expense",
+        netCashFlowLabel: "Net Cash Flow",
+        chartTitle: "Income/Expense Chart",
+        formTitle: "Add New Transaction",
+        descLabel: "Description",
+        amountLabel: "Amount (VND)",
+        typeLabel: "Type",
+        optIncome: "Income",
+        optExpense: "Expense",
+        dateLabel: "Date",
+        saveBtn: "Save",
+        listTitle: "Transaction List",
+        cancel: "Cancel",
+        edit: "Edit",
+        delete: "Delete",
+        noTrans: "No transactions yet. Add one!",
+        successAdd: "Transaction added successfully!",
+        successUpdate: "Updated successfully!",
+        confirmDelete: "Delete this transaction?"
+      },
+      ko: {
+        appTitle: "현금 흐름 관리",
+        loginTitle: "계속하려면 로그인하세요",
+        usernameLabel: "사용자 이름",
+        passwordLabel: "비밀번호",
+        loginBtn: "로그인",
+        totalIncomeLabel: "총 수입",
+        totalExpenseLabel: "총 지출",
+        netCashFlowLabel: "순 현금 흐름",
+        chartTitle: "수입/지출 차트",
+        formTitle: "새 거래 추가",
+        descLabel: "설명",
+        amountLabel: "금액 (VND)",
+        typeLabel: "유형",
+        optIncome: "수입",
+        optExpense: "지출",
+        dateLabel: "날짜",
+        saveBtn: "저장",
+        listTitle: "거래 목록",
+        cancel: "취소",
+        edit: "수정",
+        delete: "삭제",
+        noTrans: "아직 거래가 없습니다. 추가해주세요!",
+        successAdd: "거래가 성공적으로 추가되었습니다!",
+        successUpdate: "성공적으로 업데이트되었습니다!",
+        confirmDelete: "이 거래를 삭제하시겠습니까?"
+      },
+      zh: {
+        appTitle: "现金流管理",
+        loginTitle: "登录以继续",
+        usernameLabel: "用户名",
+        passwordLabel: "密码",
+        loginBtn: "登录",
+        totalIncomeLabel: "总收入",
+        totalExpenseLabel: "总支出",
+        netCashFlowLabel: "净现金流",
+        chartTitle: "收入/支出图表",
+        formTitle: "添加新交易",
+        descLabel: "描述",
+        amountLabel: "金额 (VND)",
+        typeLabel: "类型",
+        optIncome: "收入",
+        optExpense: "支出",
+        dateLabel: "日期",
+        saveBtn: "保存",
+        listTitle: "交易列表",
+        cancel: "取消",
+        edit: "编辑",
+        delete: "删除",
+        noTrans: "还没有交易。请添加！",
+        successAdd: "交易添加成功！",
+        successUpdate: "更新成功！",
+        confirmDelete: "删除此交易？"
+      }
+    };
+
+    let currentLang = 'vi';
+    let chart;
+
+    function t(key) {
+      return translations[currentLang][key] || key;
+    }
+
+    function changeLanguage() {
+      currentLang = document.getElementById('langSelect').value;
+      applyTranslations();
+      // Re-render list and summary
+      const data = window.lastData || {};
+      renderTransactions(data);
+      updateSummaryAndChart(data);
+    }
+
+    function applyTranslations() {
+      document.getElementById('appTitle').textContent = t('appTitle');
+      document.getElementById('totalIncomeLabel').textContent = t('totalIncomeLabel');
+      document.getElementById('totalExpenseLabel').textContent = t('totalExpenseLabel');
+      document.getElementById('netCashFlowLabel').textContent = t('netCashFlowLabel');
+      document.getElementById('chartTitle').textContent = t('chartTitle');
+      document.getElementById('formTitle').textContent = t('formTitle');
+      document.getElementById('descLabel').textContent = t('descLabel');
+      document.getElementById('amountLabel').textContent = t('amountLabel');
+      document.getElementById('typeLabel').textContent = t('typeLabel');
+      document.getElementById('optIncome').textContent = t('optIncome');
+      document.getElementById('optExpense').textContent = t('optExpense');
+      document.getElementById('dateLabel').textContent = t('dateLabel');
+      document.getElementById('saveBtn').textContent = t('saveBtn');
+      document.getElementById('listTitle').textContent = t('listTitle');
+      document.getElementById('cancelEdit').textContent = t('cancel');
+    }
+
+    // Simple Login
+    window.login = function() {
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value.trim();
+      const messageEl = document.getElementById('loginMessage');
+
+      if (username === "xGame" && password === "ndgiang135") {
+        document.getElementById('loginScreen').classList.add('hidden');
+        document.getElementById('mainApp').classList.remove('hidden');
+        messageEl.classList.add('hidden');
+      } else {
+        messageEl.textContent = currentLang === 'vi' ? 'Sai tên đăng nhập hoặc mật khẩu!' : 
+                              currentLang === 'ko' ? '사용자 이름 또는 비밀번호가 잘못되었습니다!' :
+                              currentLang === 'zh' ? '用户名或密码错误！' : 'Invalid username or password!';
+        messageEl.classList.remove('hidden');
+      }
+    };
+
+    window.logout = function() {
+      if (confirm(currentLang === 'vi' ? 'Đăng xuất?' : currentLang === 'ko' ? '로그아웃?' : currentLang === 'zh' ? '登出？' : 'Logout?')) {
+        document.getElementById('mainApp').classList.add('hidden');
+        document.getElementById('loginScreen').classList.remove('hidden');
+        document.getElementById('password').value = '';
+      }
+    };
+
+    // Rest of your original script (with translations applied)
     const form = document.getElementById('transactionForm');
     const editIdInput = document.getElementById('editId');
     const cancelEdit = document.getElementById('cancelEdit');
@@ -109,8 +332,6 @@
     const totalIncomeEl = document.getElementById('totalIncome');
     const totalExpenseEl = document.getElementById('totalExpense');
     const netCashFlowEl = document.getElementById('netCashFlow');
-
-    let chart;
 
     // Theme toggle
     const themeToggle = document.getElementById('themeToggle');
@@ -124,12 +345,15 @@
       themeToggle.textContent = document.documentElement.classList.contains('dark') ? '☀️' : '🌙';
     };
 
-    // Set default date to today
+    // Set default date
     document.getElementById('date').value = new Date().toISOString().split('T')[0];
+
+    window.lastData = {};
 
     // Realtime listener
     onValue(transRef, snap => {
       const data = snap.val() || {};
+      window.lastData = data;
       renderTransactions(data);
       updateSummaryAndChart(data);
     });
@@ -143,20 +367,20 @@
         div.innerHTML = `
           <div>
             <p class="font-medium">${trans.description}</p>
-            <p class="text-sm text-gray-500 dark:text-gray-400">${trans.date} • ${trans.type === 'income' ? 'Thu nhập' : 'Chi tiêu'}</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400">${trans.date} • ${trans.type === 'income' ? t('optIncome') : t('optExpense')}</p>
           </div>
           <div class="text-right">
             <p class="font-bold ${isIncome ? 'text-green-600' : 'text-red-600'}">${Number(trans.amount).toLocaleString('vi-VN')} ₫</p>
             <div class="mt-1">
-              <button onclick="editTrans('${id}')" class="text-blue-600 text-sm mr-2">Sửa</button>
-              <button onclick="deleteTrans('${id}')" class="text-red-600 text-sm">Xóa</button>
+              <button onclick="editTrans('${id}')" class="text-blue-600 text-sm mr-2">${t('edit')}</button>
+              <button onclick="deleteTrans('${id}')" class="text-red-600 text-sm">${t('delete')}</button>
             </div>
           </div>
         `;
         transactionList.appendChild(div);
       });
       if (Object.keys(data).length === 0) {
-        transactionList.innerHTML = '<p class="text-center text-gray-500 py-8">Chưa có giao dịch nào. Hãy thêm mới!</p>';
+        transactionList.innerHTML = `<p class="text-center text-gray-500 py-8">${t('noTrans')}</p>`;
       }
     }
 
@@ -173,13 +397,12 @@
       netCashFlowEl.textContent = net.toLocaleString('vi-VN') + ' ₫';
       netCashFlowEl.className = `text-3xl font-bold ${net >= 0 ? 'text-green-600' : 'text-red-600'}`;
 
-      // Update chart
       const ctx = document.getElementById('cashChart').getContext('2d');
       if (chart) chart.destroy();
       chart = new Chart(ctx, {
         type: 'pie',
         data: {
-          labels: ['Thu nhập', 'Chi tiêu'],
+          labels: [t('optIncome'), t('optExpense')],
           datasets: [{
             data: [income, expense],
             backgroundColor: ['#10b981', '#ef4444'],
@@ -193,7 +416,6 @@
       });
     }
 
-    // Form submit
     form.onsubmit = e => {
       e.preventDefault();
       const id = editIdInput.value;
@@ -211,15 +433,16 @@
 
       if (id) {
         update(ref(db, `cashflow/transactions/${id}`), newTrans);
+        alert(t('successUpdate'));
       } else {
         push(ref(db, 'cashflow/transactions'), newTrans);
+        alert(t('successAdd'));
       }
 
       form.reset();
       editIdInput.value = '';
       cancelEdit.classList.add('hidden');
       document.getElementById('date').value = new Date().toISOString().split('T')[0];
-      alert(id ? 'Cập nhật thành công!' : 'Thêm giao dịch thành công!');
     };
 
     cancelEdit.onclick = () => {
@@ -243,9 +466,12 @@
     };
 
     window.deleteTrans = id => {
-      if (!confirm('Xóa giao dịch này?')) return;
+      if (!confirm(t('confirmDelete'))) return;
       remove(ref(db, `cashflow/transactions/${id}`));
     };
+
+    // Initial setup
+    applyTranslations();
   </script>
 </body>
 </html>
