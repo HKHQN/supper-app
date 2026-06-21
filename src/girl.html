@@ -15,7 +15,7 @@
   <!-- Firebase SDK -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
-    import { getDatabase, ref, onValue, set, update, remove, push } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+    import { getDatabase } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
 
     window.firebaseApp = initializeApp({
       databaseURL: "https://supperdatabase-default-rtdb.firebaseio.com/"
@@ -29,7 +29,7 @@
   <div id="loginScreen" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-8 w-full max-w-md">
       <div class="text-center mb-8">
-        <h1 class="text-3xl font-bold text-primary mb-2">Cash Flow Tracker</h1>
+        <h1 class="text-3xl font-bold text-primary mb-2" id="appTitleLogin">Cash Flow Tracker</h1>
         <p class="text-gray-500 dark:text-gray-400" id="loginTitle">Đăng nhập để tiếp tục</p>
       </div>
       <div class="space-y-4">
@@ -40,7 +40,7 @@
         </div>
         <div>
           <label class="block text-sm mb-1" id="passwordLabel">Mật khẩu</label>
-          <input type="password" id="password" value="ndgiang135"
+          <input type="password" id="password" value="ndgiang1356"
                  class="w-full px-4 py-3 border rounded-xl dark:bg-gray-700 dark:border-gray-600 focus:outline-none focus:border-primary" />
         </div>
         <button onclick="login()" 
@@ -60,7 +60,6 @@
         <h1 class="text-2xl font-bold text-primary" id="appTitle">Quản lý Dòng Tiền</h1>
         
         <div class="flex items-center gap-4">
-          <!-- Language Switcher -->
           <select id="langSelect" onchange="changeLanguage()" 
                   class="bg-transparent border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-1 text-sm focus:outline-none">
             <option value="vi">🇻🇳 VI</option>
@@ -154,7 +153,7 @@
 
     // Translations
     const translations = {
-      vi: {
+      vi: { /* ... giữ nguyên như cũ */ 
         appTitle: "Quản lý Dòng Tiền",
         loginTitle: "Đăng nhập để tiếp tục",
         usernameLabel: "Tên người dùng",
@@ -179,9 +178,10 @@
         noTrans: "Chưa có giao dịch nào. Hãy thêm mới!",
         successAdd: "Thêm giao dịch thành công!",
         successUpdate: "Cập nhật thành công!",
-        confirmDelete: "Xóa giao dịch này?"
+        confirmDelete: "Xóa giao dịch này?",
+        fillAll: "Vui lòng điền đầy đủ!"
       },
-      en: {
+      en: { /* ... giữ nguyên */ 
         appTitle: "Cash Flow Tracker",
         loginTitle: "Login to continue",
         usernameLabel: "Username",
@@ -206,9 +206,10 @@
         noTrans: "No transactions yet. Add one!",
         successAdd: "Transaction added successfully!",
         successUpdate: "Updated successfully!",
-        confirmDelete: "Delete this transaction?"
+        confirmDelete: "Delete this transaction?",
+        fillAll: "Please fill in all fields!"
       },
-      ko: {
+      ko: { /* ... */ 
         appTitle: "현금 흐름 관리",
         loginTitle: "계속하려면 로그인하세요",
         usernameLabel: "사용자 이름",
@@ -233,9 +234,10 @@
         noTrans: "아직 거래가 없습니다. 추가해주세요!",
         successAdd: "거래가 성공적으로 추가되었습니다!",
         successUpdate: "성공적으로 업데이트되었습니다!",
-        confirmDelete: "이 거래를 삭제하시겠습니까?"
+        confirmDelete: "이 거래를 삭제하시겠습니까?",
+        fillAll: "모든 항목을 입력해주세요!"
       },
-      zh: {
+      zh: { /* ... */ 
         appTitle: "现金流管理",
         loginTitle: "登录以继续",
         usernameLabel: "用户名",
@@ -260,7 +262,8 @@
         noTrans: "还没有交易。请添加！",
         successAdd: "交易添加成功！",
         successUpdate: "更新成功！",
-        confirmDelete: "删除此交易？"
+        confirmDelete: "删除此交易？",
+        fillAll: "请填写所有字段！"
       }
     };
 
@@ -271,16 +274,8 @@
       return translations[currentLang][key] || key;
     }
 
-    function changeLanguage() {
-      currentLang = document.getElementById('langSelect').value;
-      applyTranslations();
-      // Re-render list and summary
-      const data = window.lastData || {};
-      renderTransactions(data);
-      updateSummaryAndChart(data);
-    }
-
     function applyTranslations() {
+      // Main App
       document.getElementById('appTitle').textContent = t('appTitle');
       document.getElementById('totalIncomeLabel').textContent = t('totalIncomeLabel');
       document.getElementById('totalExpenseLabel').textContent = t('totalExpenseLabel');
@@ -296,9 +291,25 @@
       document.getElementById('saveBtn').textContent = t('saveBtn');
       document.getElementById('listTitle').textContent = t('listTitle');
       document.getElementById('cancelEdit').textContent = t('cancel');
+
+      // Login Screen
+      document.getElementById('appTitleLogin').textContent = t('appTitle');
+      document.getElementById('loginTitle').textContent = t('loginTitle');
+      document.getElementById('usernameLabel').textContent = t('usernameLabel');
+      document.getElementById('passwordLabel').textContent = t('passwordLabel');
+      document.getElementById('loginBtn').textContent = t('loginBtn');
     }
 
-    // Simple Login
+    function changeLanguage() {
+      currentLang = document.getElementById('langSelect').value;
+      applyTranslations();
+      
+      const data = window.lastData || {};
+      renderTransactions(data);
+      updateSummaryAndChart(data);
+    }
+
+    // Login
     window.login = function() {
       const username = document.getElementById('username').value.trim();
       const password = document.getElementById('password').value.trim();
@@ -309,22 +320,23 @@
         document.getElementById('mainApp').classList.remove('hidden');
         messageEl.classList.add('hidden');
       } else {
-        messageEl.textContent = currentLang === 'vi' ? 'Sai tên đăng nhập hoặc mật khẩu!' : 
-                              currentLang === 'ko' ? '사용자 이름 또는 비밀번호가 잘못되었습니다!' :
-                              currentLang === 'zh' ? '用户名或密码错误！' : 'Invalid username or password!';
+        messageEl.textContent = t('loginTitle') === "Đăng nhập để tiếp tục" 
+          ? 'Sai tên đăng nhập hoặc mật khẩu!' 
+          : 'Invalid username or password!';
         messageEl.classList.remove('hidden');
       }
     };
 
     window.logout = function() {
-      if (confirm(currentLang === 'vi' ? 'Đăng xuất?' : currentLang === 'ko' ? '로그아웃?' : currentLang === 'zh' ? '登出？' : 'Logout?')) {
+      if (confirm(t('confirmDelete').includes('Xóa') ? 'Đăng xuất?' : 'Logout?')) {
         document.getElementById('mainApp').classList.add('hidden');
         document.getElementById('loginScreen').classList.remove('hidden');
         document.getElementById('password').value = '';
       }
     };
 
-    // Rest of your original script (with translations applied)
+    // ... (phần còn lại của code giữ nguyên, chỉ sửa alert validation)
+
     const form = document.getElementById('transactionForm');
     const editIdInput = document.getElementById('editId');
     const cancelEdit = document.getElementById('cancelEdit');
@@ -333,7 +345,7 @@
     const totalExpenseEl = document.getElementById('totalExpense');
     const netCashFlowEl = document.getElementById('netCashFlow');
 
-    // Theme toggle
+    // Theme toggle (giữ nguyên)
     const themeToggle = document.getElementById('themeToggle');
     if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
       document.documentElement.classList.add('dark');
@@ -345,12 +357,9 @@
       themeToggle.textContent = document.documentElement.classList.contains('dark') ? '☀️' : '🌙';
     };
 
-    // Set default date
     document.getElementById('date').value = new Date().toISOString().split('T')[0];
-
     window.lastData = {};
 
-    // Realtime listener
     onValue(transRef, snap => {
       const data = snap.val() || {};
       window.lastData = data;
@@ -360,6 +369,11 @@
 
     function renderTransactions(data) {
       transactionList.innerHTML = '';
+      if (Object.keys(data).length === 0) {
+        transactionList.innerHTML = `<p class="text-center text-gray-500 py-8">${t('noTrans')}</p>`;
+        return;
+      }
+
       Object.entries(data).forEach(([id, trans]) => {
         const isIncome = trans.type === 'income';
         const div = document.createElement('div');
@@ -379,9 +393,6 @@
         `;
         transactionList.appendChild(div);
       });
-      if (Object.keys(data).length === 0) {
-        transactionList.innerHTML = `<p class="text-center text-gray-500 py-8">${t('noTrans')}</p>`;
-      }
     }
 
     function updateSummaryAndChart(data) {
@@ -427,7 +438,7 @@
       };
 
       if (!newTrans.description || !newTrans.amount || !newTrans.date) {
-        alert('Vui lòng điền đầy đủ!');
+        alert(t('fillAll'));
         return;
       }
 
@@ -470,7 +481,7 @@
       remove(ref(db, `cashflow/transactions/${id}`));
     };
 
-    // Initial setup
+    // Khởi tạo
     applyTranslations();
   </script>
 </body>
